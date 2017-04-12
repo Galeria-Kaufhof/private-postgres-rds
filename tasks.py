@@ -27,9 +27,11 @@ def sync_virtualenv(ctx):
     print("""
     Installation completed. Please check any error messages above.
 
-    If you are going to use `openstack` or ansible direct on the command line, run
+    If you are going to use `openstack` or ansible directly on the command line, run
 
     . ./pyenv/bin/activate
+
+    or even add it to your ~/.bashrc
     """)
 
 def credentials_store():
