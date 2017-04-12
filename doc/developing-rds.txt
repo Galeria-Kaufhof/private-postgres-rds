@@ -1,0 +1,7 @@
+
+Run tests::
+-----------
+
+  behave test/features
+
+
