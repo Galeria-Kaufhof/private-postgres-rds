@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 from __future__ import print_function
 import contextlib
-import imp
 import os
 import re
 import sys
@@ -9,12 +8,8 @@ import sys
 from invoke import task
 from os import path
 
-if 'RDS_ORGANIZATION_CONF' not in os.environ:
-    print('Please set RDS_ORGANIZATION_CONF environment variable. See "getting started" for more information')
-    sys.exit(1)
-
 sys.path.insert(0, path.abspath(path.join(__file__, '../lib')))
-orga_conf = imp.load_source('', os.environ['RDS_ORGANIZATION_CONF'])
+from conf import OrganizationConf, get_env
 
 @task
 def sync_virtualenv(ctx):
@@ -44,6 +39,7 @@ def once_organization_wide(ctx, aws_account):
     ctx.run("ansible-playbook peng-once/configure-once.playbook.yaml -vv --extra-vars='credentials_store={} aws_account={}'".format(credentials_store(), aws_account), pty=True, echo=True)
 
 def backup_aws_account_for_zone(zone):
+    # TODO extract to OrganizationConf
     """We use different aws accounts for development and production. Detect, which one to use."""
     if zone.find("prod") >= 0:
         return "prod"
@@ -97,10 +93,10 @@ def migrate_to_master(ctx, zone, db_instance_name, target_master):
     provision({}) # new solution: create the slave afterwards, new step 4
 
 def service_url(zone, db_instance_name):
-    return orga_conf.OrganizationConf.service_url(zone, db_instance_name)
+    return OrganizationConf.service_url(zone, db_instance_name)
 
 def backup_bucket_name(zone, db_instance_name):
-    return orga_conf.OrganizationConf.backup_bucket_name(zone, db_instance_name)
+    return OrganizationConf.backup_bucket_name(zone, db_instance_name)
 
 @task(help={
     "from-zone": "by default the same as target zone",
@@ -121,6 +117,9 @@ def restore_cluster(ctx, zone, db_instance, from_zone=None, from_db_instance=Non
     if from_db_instance == None:
         from_db_instance = db_instance
     if backup_folder == None:
+        get_env('AWS_SECRET_ACCESS_KEY', 'to list the backup buckets at AWS S3.')
+        get_env('AWS_ACCESS_KEY_ID', 'to list the backup buckets at AWS S3.')
+        get_env('AWS_REGION', 'to list the backup buckets at AWS S3.')
         print("Available values for --backup-folder :\n")
         res = ctx.run("aws s3 ls " + backup_bucket_name(from_zone, from_db_instance), pty=True, hide="stdout")
         for line in res.stdout.splitlines():

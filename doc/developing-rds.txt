@@ -4,4 +4,6 @@ Run tests::
 
   behave test/features
 
+  # in a different console observe provisioning progress:
+  tail -f /tmp/detailed-test-output.txt
 
