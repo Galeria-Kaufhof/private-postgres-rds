@@ -3,7 +3,7 @@
 -----------------
 
 Creating servers, VMs or bare metal is outside of the scope of this project.
-Use whatever tools you always use
+Use whatever tools you always use:
 
 * on openstack run ``nova`` or ``heat``
 * on bare metal use some sort of PXE boot, or insert a USB stick or CD
