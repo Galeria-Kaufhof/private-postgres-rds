@@ -5,6 +5,7 @@ from cluster_under_test import *
 from datetime import datetime
 import boto
 import time
+from conf import OrganizationConf
 
 def expected_backup_bucket():
     return OrganizationConf.backup_bucket_name(ClusterUnderTest.zone, ClusterUnderTest.db_instance_name)

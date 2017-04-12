@@ -5,17 +5,4 @@ class OrganizationConf(BaseOrganizationConf):
     def self.domain(cls):
         return "myorg.example.com"
 
-    # @classmethod
-    # def self.service_url(cls, zone, db_instance_name):
-    #     domain = self.domain()
-    #     return "{db_instance_name}-postgres.{zone}.{domain}".format(**locals())
-
-    # @classmethod
-    # def self.server_name(cls, zone, db_instance_name, i):
-    #     domain = self.domain()
-    #     return "{zone}-postgres-{db_instance_name}-{i}.{zone}.{domain}".format(**locals())
-
-    # @classmethod
-    # def backup_bucket_name(cls, zone, db_instance_name):
-    #     BACKUP_BUCKET_TEMPLATE = "s3://backup--{service_url}"
-    #     return BACKUP_BUCKET_TEMPLATE.format(service_url=cls.service_url(zone, db_instance_name))
+    # see lib/base_organization_conf.py for more options to override

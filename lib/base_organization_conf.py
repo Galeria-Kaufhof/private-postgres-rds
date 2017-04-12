@@ -24,3 +24,11 @@ class BaseOrganizationConf():
         BACKUP_BUCKET_TEMPLATE = "s3://backup--{service_url}"
         return BACKUP_BUCKET_TEMPLATE.format(service_url=cls.service_url(zone, db_instance_name))
 
+    @classmethod
+    def dns_authority(cls):
+        return "@8.8.8.8"
+
+    @classmethod
+    def test_zone(cls):
+        return "int"
+
