@@ -1,0 +1,60 @@
+
+1. Create servers
+
+Creating servers, VMs or bare metal is outside of the scope of this project.
+Use whatever tools you always use
+
+* on openstack run ``nova`` or ``heat``
+* on bare metal use some sort of PXE boot, or insert a USB stick or CD
+* or use some orchestration tool based on terraform or ansible
+
+Typical setup will include 2 servers for every development team for every
+"zone", e.g. ``production``, ``integration``:
+
+* a **master**, which will be available for read-write operations and will be
+  registered within DNS or service discovery under **service name**
+* a hot-standby **slave**, which can quickly take over in case the master gets
+  broken
+
+Choose some naming convention like and name servers according to it. For
+``integration`` zone/stage and the ``orderdata`` topic or team create two
+servers::
+
+  int-postgres-orderdata-1.int.example.com
+  int-postgres-orderdata-2.int.example.com
+
+* install minimal e.g. Ubuntu or CentOS system
+* ensure key-based ssh works from your machine and you can ssh as root
+
+2. Install prerequisites::
+
+  # clone this project
+  git clone https://github.com/Galeria-Kaufhof/private-postgres-rds.git
+
+  # prepare space to save generated credentials
+  mkdir postgres-credentials
+
+  # prepare configuration file to define specifics of your organization
+  # you can just copy and adjust the sample:
+  cp private-postgres-rds/lib/organization_conf.py.sample <some-folder>/organization_conf.py
+  # now adjust the file
+  vim ...
+  export RDS_ORGANIZATION_CONF=<full-path-to-the-file-you-ve-just-created>
+
+  cd private-postgres-rds
+  invoke --list
+  # Create project specific python virtual environment in a subfolder
+  invoke --help sync_virtualenv
+
+3. Install postgres on every server::
+
+  invoke --help initialize_servers
+
+4. Configure postgres cluster
+
+  invoke --help configure_cluster
+
+After a successful run of ``configure_cluster`` you will see instructions,
+how to access your new postgres from psql and the ``admin`` password, you can
+forward to developer teams.
+
