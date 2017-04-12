@@ -1,0 +1,143 @@
+#!/usr/bin/env python
+from __future__ import print_function
+import contextlib
+import imp
+import os
+import re
+import sys
+
+from invoke import task
+from os import path
+
+if 'RDS_ORGANIZATION_CONF' not in os.environ:
+    print('Please set RDS_ORGANIZATION_CONF environment variable. See "getting started" for more information')
+    sys.exit(1)
+
+sys.path.insert(0, path.abspath(path.join(__file__, '../lib')))
+orga_conf = imp.load_source('', os.environ['RDS_ORGANIZATION_CONF'])
+
+@task
+def sync_virtualenv(ctx):
+    """Create project specific python virtual environment in a subfolder.
+    Install required ansible, openstack versions.
+    """
+    if not path.isfile("./pyenv/bin/pip"):
+        ctx.run("virtualenv --no-site-packages --python=/usr/bin/python2.7 pyenv")
+    ctx.run("PIP_DOWNLOAD_CACHE=/var/tmp/ ./pyenv/bin/pip install -r requirements.txt")
+    print("""
+    Installation completed. Please check any error messages above.
+
+    If you are going to use `openstack` or ansible direct on the command line, run
+
+    . ./pyenv/bin/activate
+    """)
+
+def credentials_store():
+    return path.abspath(path.join(__file__, '../../postgres-credentials'))
+
+@task(help={'aws-account':
+    "We use different aws accounts for development and production. Please select e.g. `dev` or `prod`"})
+def once_organization_wide(ctx, aws_account):
+    """Run this task once, organization wide, not per db instance"""
+    ctx.run("ansible-playbook peng-once/configure-once.playbook.yaml -vv --extra-vars='credentials_store={} aws_account={}'".format(credentials_store(), aws_account), pty=True, echo=True)
+
+def backup_aws_account_for_zone(zone):
+    """We use different aws accounts for development and production. Detect, which one to use."""
+    if zone.find("prod") >= 0:
+        return "prod"
+    else:
+        return "dev"
+
+def str_var_dict(var_dict=None):
+    if var_dict == None:
+        return ''
+    else:
+        return ' '.join(["{}={}".format(k, var_dict[k]) for k in var_dict]) # TODO escaping
+
+def init_pg_servers_play_run(zone, db_instance_name, more_vars=None, more_env_vars=None):
+    # load AWS credentials for backup_configurer user
+    cred_file = "{}/backup/{}/configurer.credentials.properties".format(
+            credentials_store(), backup_aws_account_for_zone(zone))
+    aws_vars = open(cred_file).readlines()
+    aws_env = ' '.join([var.strip() for var in aws_vars])
+
+    cred = credentials_store()
+    more = str_var_dict(more_vars)
+    more_env = str_var_dict(more_env_vars)
+    inventory = "configure/pg-cluster-inventory.py"
+    return "{aws_env} ZONE={zone} {more_env} DB_INSTANCE_NAME={db_instance_name} ansible-playbook configure/init_pg_servers.playbook.yaml --extra-vars='credentials_store={cred} zone={zone} db_instance_name={db_instance_name} {more}' -i {inventory} -vv".format(**locals())
+
+@task
+def configure_cluster(ctx, zone, db_instance_name):
+    """Initialize an empty cluster or update configuration of a running cluster.
+    Implementation: runs `init_pg_cluster` playbook."""
+    ctx.run(init_pg_servers_play_run(zone, db_instance_name), pty=True, echo=True)
+
+@task
+def migrate_to_master(ctx, zone, db_instance_name, target_master):
+    """Helps with rolling upgrade. Typical case: replace master+slave by new,
+    upgraded, replicated master+slave.
+    Implementation: runs 3-step provisioning:
+    * configure a new slave as replica of master
+    * configure additional slave, using the just configured slave as upstream
+    * promote the first new slave to master, deactivate old severs
+    """
+    def provision(more_env_vars):
+        print("DEBUG ****** provision during migration ******* ", more_env_vars)
+        print(init_pg_servers_play_run(zone, db_instance_name, more_env_vars=more_env_vars))
+        ctx.run(init_pg_servers_play_run(zone, db_instance_name, more_env_vars=more_env_vars), pty=True, echo=True)
+
+    provision({'ENFORCE_SLAVE_UPSTREAM': target_master}) # step 1, see docstring above
+    # provision({'ENFORCE_SLAVE_UPSTREAM': target_master}) # step 2, TODO later: find out,
+    #   what is needed on the secondary slave on promotion of the primary slave
+    #   Check `recovery_target_timeline='latest'`
+    provision({'ENFORCE_MASTER': target_master})         # step 3
+    provision({}) # new solution: create the slave afterwards, new step 4
+
+def service_url(zone, db_instance_name):
+    return orga_conf.OrganizationConf.service_url(zone, db_instance_name)
+
+def backup_bucket_name(zone, db_instance_name):
+    return orga_conf.OrganizationConf.backup_bucket_name(zone, db_instance_name)
+
+@task(help={
+    "from-zone": "by default the same as target zone",
+    "from-db-instance": "by default the same as db-instance",
+    "backup-folder": "subfolder in the backup bucket to use. Leave empty to list all the available backups",
+    "target-time": """support for point in time recovery. Leave empty for latest or provide
+    in format like '2017-03-22 15:50:12' Think about proper time zone. Our servers e.g. use UTC."""
+    })
+def restore_cluster(ctx, zone, db_instance, from_zone=None, from_db_instance=None, backup_folder=None, target_time=None):
+    """Configure and restore cluster from existing backup. Supports point-in-time recovery.
+
+    invoke restore_cluster <zone> <db-instance>
+    invoke restore_cluster <zone> <db-instance> --backup-folder='2017-03-22_10-27-58.928456401'
+    """
+
+    if from_zone == None:
+        from_zone = zone
+    if from_db_instance == None:
+        from_db_instance = db_instance
+    if backup_folder == None:
+        print("Available values for --backup-folder :\n")
+        res = ctx.run("aws s3 ls " + backup_bucket_name(from_zone, from_db_instance), pty=True, hide="stdout")
+        for line in res.stdout.splitlines():
+            print(re.search("PRE ([^ /]+)", line).group(1))
+    else:
+        recover_from = "{}/{}".format(backup_bucket_name(from_zone, from_db_instance), backup_folder)
+        print("""
+        Starting recovery
+        """)
+        more_vars = {'recover_from': recover_from}
+        if target_time:
+            more_vars['recovery_target_time'] = '"{}"'.format(target_time) # need quoting due to space char
+
+        ctx.run(init_pg_servers_play_run(zone, db_instance, more_vars=more_vars), pty=True, echo=True)
+
+@task
+def initialize_servers(ctx, zone, db_instance):
+  '''Install postgres from tar, set up system service. Keep data folder empty. Next step: configure_cluster'''
+  for playbook in ["prepare-bootstrap.yaml", "postgres.yaml"]:
+    cmd = "pyenv/bin/ansible-playbook -i ./inventory/{}-{}-by-ip.ini -vv buildimage/{}"
+    ctx.run(cmd.format(zone, db_instance, playbook))
+

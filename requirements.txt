@@ -1,0 +1,16 @@
+# binary pre dependency: pg_config from pkg libpq-dev
+ansible==2.2
+python-openstackclient==3.6.0
+shade==1.14
+sphinx==1.5.2
+sphinx_rtd_theme==0.1.9
+invoke
+behave
+psycopg2
+paramiko
+nose
+boto
+boto3
+botocore
+awsretry
+awscli

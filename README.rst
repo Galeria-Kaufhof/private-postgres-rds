@@ -12,6 +12,7 @@ and `practical realization`_.
 .. _practical realization: http://galeria-kaufhof.github.io/general/2015/12/15/architektur-und-organisation-im-galeria-de-produktmanagement
 
 So you wish something like RDS, but on premises or with flexible hosting
-options. Then the following solution can be for you!
+options. Use the implementation code in this project as an inspiration or
+`start with a walk-through ! <doc/getting-started.txt>`_
 
 Copyright (c) 2017 Galeria Kaufhof GmbH

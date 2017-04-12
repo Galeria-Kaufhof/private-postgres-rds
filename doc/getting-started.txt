@@ -1,5 +1,6 @@
 
 1. Create servers
+-----------------
 
 Creating servers, VMs or bare metal is outside of the scope of this project.
 Use whatever tools you always use
@@ -27,6 +28,7 @@ servers::
 * ensure key-based ssh works from your machine and you can ssh as root
 
 2. Install prerequisites::
+--------------------------
 
   # clone this project
   git clone https://github.com/Galeria-Kaufhof/private-postgres-rds.git
@@ -47,10 +49,12 @@ servers::
   invoke --help sync_virtualenv
 
 3. Install postgres on every server::
+-------------------------------------
 
   invoke --help initialize_servers
 
 4. Configure postgres cluster
+-----------------------------
 
   invoke --help configure_cluster
 
