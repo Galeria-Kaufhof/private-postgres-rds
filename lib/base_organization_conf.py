@@ -10,14 +10,18 @@ class BaseOrganizationConf():
         return "example.com"
 
     @classmethod
-    def service_url(cls, zone, db_instance_name):
-        domain = cls.domain()
-        return "{db_instance_name}-postgres.{zone}.{domain}".format(**locals())
-
-    @classmethod
     def server_name(cls, zone, db_instance_name, i):
         domain = cls.domain()
         return "{zone}-postgres-{db_instance_name}-{i}.{zone}.{domain}".format(**locals())
+
+    @classmethod
+    def server_name_filter(cls, zone, db_instance_name):
+        return "{}-postgres-{}-".format(zone, db_instance_name)
+
+    @classmethod
+    def service_url(cls, zone, db_instance_name):
+        domain = cls.domain()
+        return "{db_instance_name}-postgres.{zone}.{domain}".format(**locals())
 
     @classmethod
     def backup_bucket_name(cls, zone, db_instance_name):
