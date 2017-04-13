@@ -1,0 +1,98 @@
+==============================
+Postgres RDS Operator Handbook
+==============================
+
+--------------------------------------------
+Create cluster for a new team/problem domain
+--------------------------------------------
+
+1. create new VM instances and install postgres as described in getting-started
+2. configure the fresh cluster with ``invoke configure_cluster ...``, see
+``invoke --help configure_cluster``
+
+
+------------------------------
+(Rolling) upgrade of a cluster
+------------------------------
+
+To increase storage, or to upgrade to a new postgres minor version:
+
+1. create new VM instances
+2. ``invoke migrate_to_master ...``
+
+
+------------------------------
+Ubuntu upgrade (security etc.)
+------------------------------
+
+Once monitoring detects that VMs need a reboot after an unattended upgrade:
+
+* choose a maintenance window
+* reboot the VMs. The order (master first or slave first) does not matter
+* for the duration of a reboot the postgres service is unavailable
+
+
+--------------------------------------------------------
+Point-in-time restore if an application mangled the data
+--------------------------------------------------------
+
+A restore is always made to a new cluster (different name).
+
+1. So create new VM instances as described above.
+2. ``invoke restore_cluster ...``
+
+
+--------------------------------------
+Application can not reach the postgres
+--------------------------------------
+
+Note about credentials: those are managed by developers, applications must not
+use ``admin`` account.
+
+Check, if postgres service url is set and VM is available. E.g.::
+
+  dig +short @your-dns-server <the-service-url>
+
+TODO Link to glossary about the-service-url
+
+ssh to the server and check if service is running or not and why. Some ideas::
+
+  netstat -tulpen | grep 5432
+  systemctl status postgresql.service
+  systemctl start postgresql.service
+  journalctl -xe
+
+Accessing data::
+
+  sudo -u postgres psql
+    \d
+    select * from my_table;
+
+Credentials for replication and AWS backup::
+
+  cd /var/local/postgresql; ls
+
+Check postgres configuration, data, replication configuration
+``cd /var/local/postgresql/data; ls``. Interesting files:
+
+* recovery.conf, recovery.done for slave replication, promotion
+* postgresql.conf for WAL, checkpoint, replication settings
+* pg_hba.conf for access/connection rights
+
+-----------------------
+Promote slave to master
+-----------------------
+
+Once you found out, that master is broken or missing and can not be restarted,
+you can quickly promote the existing slave to master to enable operations
+again.
+
+1. Ensure the master is really gone and will not come back, e.g. VM deleted in
+openstack. Or ensure it is really deactivated by renaming
+/var/local/postgresql/data/postgresql.conf to postgresql.conf.deactivated
+
+2. Run `invoke configure_cluster ...` It will automatically promote the
+existing hot-standby slave to master and register it under the service url.
+
+3. Build addional slaves if needed: add VM, configure cluster as described
+above
