@@ -36,7 +36,7 @@ def credentials_store():
     "We use different aws accounts for development and production. Please select e.g. `dev` or `prod`"})
 def once_organization_wide(ctx, aws_account):
     """Run this task once, organization wide, not per db instance"""
-    ctx.run("ansible-playbook peng-once/configure-once.playbook.yaml -vv --extra-vars='credentials_store={} aws_account={}'".format(credentials_store(), aws_account), pty=True, echo=True)
+    ctx.run("ansible-playbook organization-once/configure-once.playbook.yaml -vv --extra-vars='credentials_store={} aws_account={}'".format(credentials_store(), aws_account), pty=True, echo=True)
 
 def backup_aws_account_for_zone(zone):
     # TODO extract to OrganizationConf

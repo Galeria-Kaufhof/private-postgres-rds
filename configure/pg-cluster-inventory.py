@@ -78,6 +78,11 @@ if 'BASIC_INVENTORY' in os.environ:
             ip = netw.values()[0][0]
             res['postgres'].append(ip)
             res['_meta']['hostvars'][ip] = {"name": server.name}
+    res['all'] = {
+            'vars': {
+                'installation_source': OrganizationConf.installation_source(),
+            }
+        }
 
     return_inventory(res)
 

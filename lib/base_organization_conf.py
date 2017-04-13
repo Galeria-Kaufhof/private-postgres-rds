@@ -36,3 +36,11 @@ class BaseOrganizationConf():
     def test_zone(cls):
         return "int"
 
+    @classmethod
+    def init_playbooks(cls):
+        # relative to tasks.py in private-postgres-rds
+        return ["buildimage/postgres.yaml"]
+
+    @classmethod
+    def installation_source(cls):
+        return "https://get.enterprisedb.com/postgresql/postgresql-9.6.2-3-linux-x64-binaries.tar.gz"
