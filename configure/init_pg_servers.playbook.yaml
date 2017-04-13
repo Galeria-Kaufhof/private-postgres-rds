@@ -281,7 +281,8 @@
 
           psql -h {{ postgres_service_domain }} -U admin -d postgres
 
-          password {{ admin_password }}
+          The password, initially set by this ansible playbook is
+          {{ admin_password }}
 
   handlers:
     - name: Restart postgres
