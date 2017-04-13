@@ -58,13 +58,16 @@ def return_inventory(inv):
     print(json.dumps(inv, indent=2))
     sys.exit(0)
 
+def name_filter():
+    return OrganizationConf.server_name_filter(zone, db_instance_name)
+
 if 'BASIC_INVENTORY' in os.environ:
     """Just list the postgres related servers, with IP addresses, for the basic provisioning"""
     res = {}
     res['postgres'] = []
     res['_meta'] = {}
     res['_meta']['hostvars'] = {}
-    for server in nova.servers.list(search_opts={'name': OrganizationConf.server_name_filter()}):
+    for server in nova.servers.list(search_opts={'name': name_filter()}):
         netw = dict(server.networks)
         del netw[u'private']
         if len(netw) > 1:
@@ -85,9 +88,6 @@ class State:
     EMPTY_DATA_DIR = 4
     DEACTIVATED = 5       # e.g. after rolling upgrade, but the VM not deleted yet
     UNKNOWN = None
-
-def name_filter():
-    return OrganizationConf.server_name_filter(zone, db_instance_name)
 
 servers = {server.name : State.UNKNOWN for server in nova.servers.list(
     search_opts={'name': name_filter()})}
