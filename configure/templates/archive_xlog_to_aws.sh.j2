@@ -1,0 +1,16 @@
+#!/bin/bash
+
+SRC_PATH=$1
+FILENAME=$2
+
+. /var/local/postgresql/aws_backup.credentials.sh
+
+if [ -f "/var/local/postgresql/backup_bucket_folder_upcoming.sh" ]; then
+  echo "For the duration of the full backup archive xlog to both, the previous and the new backup folder"
+  . /var/local/postgresql/backup_bucket_folder_upcoming.sh
+  aws s3 cp $SRC_PATH $BUCKET_FOLDER/xlog/$FILENAME
+fi
+
+. /var/local/postgresql/backup_bucket_folder.sh
+aws s3 cp $SRC_PATH $BUCKET_FOLDER/xlog/$FILENAME
+

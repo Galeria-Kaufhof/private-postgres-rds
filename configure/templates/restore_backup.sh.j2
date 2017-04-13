@@ -1,0 +1,32 @@
+#!/bin/bash
+set -e
+set -x
+
+BUCKET_FOLDER=$1 # example: s3://backup--test-postgres.zone.example.com/2017-03-22_10-28-53.971751329
+POINT_IN_TIME=$2 # example: 2017-03-22 15:50:12
+
+echo $BUCKET_FOLDER
+
+if [ -e "/var/local/postgresql/data/postgresql.conf" ]
+then
+  echo "The data directory is not empty. Restore is not possible!"
+  echo "Please use an empty server for restore! Current content:"
+  ls -al /var/local/postgresql/data
+  exit 1
+fi
+
+. /var/local/postgresql/aws_backup.credentials.sh
+mkdir -p /var/local/postgresql/data
+chmod 700 /var/local/postgresql/data
+cd /var/local/postgresql/data
+# will fail if files already exist, by no means overwrite existing data
+aws s3 cp $BUCKET_FOLDER/basebackup.tar.gz - | tar -kxz
+
+echo "restore_command='. /var/local/postgresql/aws_backup.credentials.sh; . /var/local/postgresql/backup_bucket_folder.sh; aws s3 cp $BUCKET_FOLDER/xlog/%f %p'" > recovery.conf
+
+if [ ! -z "$POINT_IN_TIME" ]
+then
+  echo "recovery_target_time='$POINT_IN_TIME'" >> recovery.conf
+fi
+echo "recovery_target_action=promote" >> recovery.conf
+

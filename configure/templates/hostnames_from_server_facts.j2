@@ -1,0 +1,5 @@
+[
+{% for server in openstack_servers %}
+"{{ server.name }}"{% if not loop.last %},{% endif %}
+{% endfor %}
+]

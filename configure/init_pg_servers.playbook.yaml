@@ -1,0 +1,290 @@
+---
+- name: Global vars and naming conventions
+  hosts: all
+  gather_facts: false
+  remote_user: root
+  vars:
+    credentials_store: /tmp # please provide some folder and store it's content in a secure place
+    recover_from: None # folder with a full backup + transaction logs, e.g. s3://backup--test-postgres.prod.my-organization.com/2017-03-22_10-28-53.971751329/
+    recovery_target_time: '' # provide value for point in time recovery, e.g. '2017-03-22 15:50:12'
+  tasks:
+    - debug: var=hostvars[inventory_hostname]["group_names"]
+    - set_fact:
+        backup_bucket_name:  "backup--{{ postgres_service_domain }}"
+        backup_user_name:    "backuper-{{ db_instance_name }}-{{ zone }}"
+        admin_password:      "{{ lookup('password', credentials_store + '/psql/' + zone + '/' + db_instance_name + '/admin_password chars=ascii_letters,digits') }}"
+        replicator_password: "{{ lookup('password', credentials_store + '/psql/' + zone + '/' + db_instance_name + '/replicator_password chars=ascii_letters,digits') }}"
+    - debug: var=hostvars[inventory_hostname]
+
+- name: Set up backup bucket
+  hosts: aws_commands_host
+  gather_facts: false
+  become: false
+  # assumes AWS_ACCESS_KEY_ID, AWS_SECRET_SECRET_KEY are set to the values of `backup_configurer` user
+  # which gives permission to create buckets and users
+  tasks:
+    - name: Create backup aws user
+      iam:
+        iam_type: user
+        name: "{{ backup_user_name }}"
+        state: present
+        access_key_state: create
+      register: created_user # need this name for the template
+
+    - debug:
+        msg: "{{ backup_user_name | iam_user_arn() }}"
+
+    - debug:
+        msg: "{{ created_user }}"
+
+    - name: Create AWS access file
+      template:
+        src: "aws_user.credentials.sh.j2"
+        dest: "{{ credentials_store }}/backup/{{ backup_user_name }}.credentials.sh"
+      when: "'user_meta' in created_user"
+      register: credentials_sh_file
+
+    # TODO wait for user to have been created (eventual consistency)
+    # Otherwise getting:
+    #   "Invalid principal in policy"
+    - debug:
+        msg: "{{ lookup('template', 'backup_bucket_policy.json.j2') }}"
+        verbosity: 3
+
+    - name: Create backup bucket
+      s3_bucket:
+        name: "{{ backup_bucket_name }}"
+        policy: "{{ lookup('template', 'backup_bucket_policy.json.j2') }}"
+        versioning: true # to enable trash bin
+      register: backup_bucket
+
+    - debug: var=backup_bucket
+
+    - name: Set retention for backups
+      s3_lifecycle:
+        name: "{{ backup_bucket_name }}"
+        rule_id: clean_old_backups
+        expiration_days: 30
+
+    # TODO implement "Permanently delete previous versions" a new ansible module, use boto3
+
+- name: Deactivate obsolete master and slaves
+  hosts: deactivate
+  gather_facts: False
+  remote_user: root
+  become_user: root
+  become: true
+  tasks:
+    - name: Stop postgres
+      service: name=postgresql enabled=no state=stopped
+    - name: Mark config as deactivated, part1
+      command: mv /var/local/postgresql/data/postgresql.conf /var/local/postgresql/data/postgresql.conf.deactivated
+      args:
+        creates: /var/local/postgresql/data/postgresql.conf.deactivated
+        removes: /var/local/postgresql/data/postgresql.conf
+    - name: Mark config as deactivated, part2
+      command: touch /var/local/postgresql/data/postgresql.conf.deactivated
+      args:
+        creates: /var/local/postgresql/data/postgresql.conf.deactivated
+
+- name: Set up (possibly new) postgres master
+  hosts: master
+  gather_facts: False
+  remote_user: root
+  become_user: root
+  become: true
+  tasks:
+    - name: Check if recovery (replication) is ongoing
+      stat: path=/var/local/postgresql/data/recovery.conf
+      register: recovery_file
+    - name: Case 1 - promote existing slave to master
+      shell: "pg_ctl -D /var/local/postgresql/data promote"
+      become: true
+      when: recovery_file.stat.exists
+      become_user: postgres
+      notify:
+        - Initial full backup
+
+    # Case 2 - restore from backup - extract data
+
+    - name: Create restore script
+      template:
+        src: "restore_backup.sh.j2"
+        dest: "/var/local/postgresql/restore_backup.sh"
+        mode: 0555
+
+    - name: Case 2 - restore from backup - extract data
+      shell: "/var/local/postgresql/restore_backup.sh {{ recover_from }} '{{recovery_target_time | default() }}'"
+      become: true
+      become_user: postgres
+      when: recover_from is defined
+      notify:
+        - Restart postgres
+        - Initial full backup
+
+    - name: Check existing configuration file
+      stat: path=/var/local/postgresql/data/postgresql.conf
+      register: configuration_file
+    - name: Case 3 - init DB - new database storage
+      shell: "pg_ctl -D /var/local/postgresql/data initdb"
+      become: true
+      become_user: postgres
+      when: not configuration_file.stat.exists
+      notify:
+        - Restart postgres
+        - Initial full backup
+
+    # For all cases: new master, just promoted to master or an old existing master
+    - name: Copy postgres configuration file
+      template:
+        src: "postgresql.conf.j2"
+        dest: "/var/local/postgresql/data/postgresql.conf"
+      notify: Restart postgres
+    - name: Copy postgres hba file
+      template:
+        src: "pg_hba.conf.j2"
+        dest: "/var/local/postgresql/data/pg_hba.conf"
+      notify: Restart postgres
+
+    # Configure backup
+
+    - name: Create log directory
+      file:
+        state: directory
+        mode: 0755
+        owner: postgres
+        path: "/var/local/postgresql/log"
+
+
+
+    - name: Copy backup bucket credentials
+      copy: dest=/var/local/postgresql/aws_backup.credentials.sh
+        src="{{ credentials_store }}/backup/{{ backup_user_name }}.credentials.sh"
+
+    - name: Create backup script
+      template:
+        src: "full_backup_to_aws.sh.j2"
+        dest: "/var/local/postgresql/full_backup_to_aws.sh"
+        mode: 0555
+
+    - name: Create archive log script
+      template:
+        src: "archive_xlog_to_aws.sh.j2"
+        dest: "/var/local/postgresql/archive_xlog_to_aws.sh"
+        mode: 0555
+
+    - name: Run full backup
+      cron:
+        name: postgres full backup
+        minute: "45"
+        hour: "*/2"
+        user: postgres
+        job: "/var/local/postgresql/full_backup_to_aws.sh >>/var/local/postgresql/log/backup.log 2>&1"
+
+  handlers:
+    - name: Restart postgres
+      service: name=postgresql enabled=yes state=restarted
+      notify: Wait until (possible) recovery is finished
+    - name: Wait until (possible) recovery is finished
+      wait_for:
+        path: /var/local/postgresql/data/recovery.conf
+        state: absent
+        timeout: 2592000 # 30 days = almost forever
+    - name: Initial full backup
+      shell: "/var/local/postgresql/full_backup_to_aws.sh"
+      become: true
+      become_user: postgres
+
+
+- name: Register postgres master
+  hosts: master
+  gather_facts: False
+  remote_user: root
+  become_user: root
+  become: true
+  tasks:
+    - name: Check current service's dns setting
+      shell: dig +short CNAME {{ postgres_service_domain }}
+      changed_when: false
+      register: previous_master_host
+
+    - name: Register the host under service's name
+      shell: "set-dns CNAME {{ postgres_service_domain }}  {{ inventory_hostname }}"
+      when: "previous_master_host.stdout != inventory_hostname + '.'"
+
+    - name: Ensure postgres master is started
+      service: name=postgresql enabled=yes state=started
+
+- name: Create, set up postgres users
+  hosts: master
+  gather_facts: False
+  remote_user: root
+  become_user: postgres
+  become: true
+  tasks:
+    - name: Set domain team admin user
+      postgresql_user:
+        login_unix_socket: /tmp
+        name: admin
+        password: "{{ admin_password }}"
+        role_attr_flags: SUPERUSER
+        no_password_changes: yes
+
+    - name: Set replication user
+      postgresql_user:
+        login_unix_socket: /tmp
+        name: replicator
+        password: "{{ replicator_password }}"
+        role_attr_flags: REPLICATION
+
+- name: Configure postgres slaves
+  hosts: slaves
+  tasks:
+    - name: Check existing configuration file
+      stat: path=/var/local/postgresql/data/postgresql.conf
+      register: configuration_file
+
+    - name: Set up replicator credentials
+      template:
+        src: "replicator-pgpass.conf.j2"
+        dest: "/var/local/postgresql/replicator-pgpass.conf"
+        owner: postgres
+        mode: 0600
+      notify: Restart postgres
+
+    - name: Run backup (initial replication) from master, only for empty slaves
+      # Note: you can remove `--checkpoint=fast` from the following pg_basebackup
+      # call to reduce (spread) load on master during replication.
+      # Replication will take longer then.
+      shell: PGPASSFILE=/var/local/postgresql/replicator-pgpass.conf pg_basebackup -D /var/local/postgresql/data/ -h {{ slave_upstream }} -U replicator --progress -R -w --xlog-method=stream --checkpoint=fast
+      become_user: postgres
+      become: true
+      when: not configuration_file.stat.exists
+
+    - name: Check if replication is configured
+      stat: path=/var/local/postgresql/data/recovery.conf
+      register: recovery_configuration_file
+
+    - name: Start postgres on the slave for continuous replication
+      service: name=postgresql enabled=yes state=started
+      when: recovery_configuration_file.stat.exists
+
+    - name: Do not run full backup on slave
+      cron:
+        name: postgres full backup
+        user: postgres
+        state: absent
+
+    - debug:
+        msg: |
+          You can now use the postgres instance with
+
+          psql -h {{ postgres_service_domain }} -U admin -d postgres
+
+          password {{ admin_password }}
+
+  handlers:
+    - name: Restart postgres
+      service: name=postgresql enabled=yes state=restarted
+
+

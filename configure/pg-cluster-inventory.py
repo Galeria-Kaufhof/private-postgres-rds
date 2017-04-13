@@ -205,10 +205,12 @@ res['_meta'] = {}
 res['_meta']['hostvars'] = {
         'localhost': {
             'ansible_connection': 'local',
-            'ansible_python_interpreter': path.abspath(path.join(__file__, '../../pyenv/bin/python'))
-        },
-        'all': {
-            'postgres_service_domain': OrganizationConf.service_url(zone, db_instance_name)
+            'ansible_python_interpreter': path.abspath(path.join(__file__, '../../pyenv/bin/python')),
+        }
+    }
+res['all'] = {
+        'vars': {
+            'postgres_service_domain': OrganizationConf.service_url(zone, db_instance_name),
         }
     }
 
