@@ -44,3 +44,11 @@ class BaseOrganizationConf():
     @classmethod
     def installation_source(cls):
         return "https://get.enterprisedb.com/postgresql/postgresql-9.6.2-3-linux-x64-binaries.tar.gz"
+
+    @classmethod
+    def backup_aws_account_for_zone(cls, zone):
+        """If you use different aws accounts for development and production, put
+        the logic here and return the name of AWS account to use.
+        Or return None if you would like to provide your own custom solution."""
+        return None
+

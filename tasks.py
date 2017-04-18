@@ -38,14 +38,6 @@ def once_organization_wide(ctx, aws_account):
     """Run this task once, organization wide, not per db instance"""
     ctx.run("ansible-playbook organization-once/configure-once.playbook.yaml -vv --extra-vars='credentials_store={} aws_account={}'".format(credentials_store(), aws_account), pty=True, echo=True)
 
-def backup_aws_account_for_zone(zone):
-    # TODO extract to OrganizationConf
-    """We use different aws accounts for development and production. Detect, which one to use."""
-    if zone.find("prod") >= 0:
-        return "prod"
-    else:
-        return "dev"
-
 def str_var_dict(var_dict=None):
     if var_dict == None:
         return ''
@@ -55,7 +47,7 @@ def str_var_dict(var_dict=None):
 def init_pg_servers_play_run(zone, db_instance_name, more_vars=None, more_env_vars=None):
     # load AWS credentials for backup_configurer user
     cred_file = "{}/backup/{}/configurer.credentials.properties".format(
-            credentials_store(), backup_aws_account_for_zone(zone))
+            credentials_store(), OrganizationConf.backup_aws_account_for_zone(zone))
     aws_vars = open(cred_file).readlines()
     aws_env = ' '.join([var.strip() for var in aws_vars])
 
