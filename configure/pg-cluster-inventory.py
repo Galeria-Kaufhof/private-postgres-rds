@@ -129,7 +129,7 @@ if "RDS_ALL_ZONES" in os.environ:
             version = lsres.strip().split(" ")[1]
         else:
             version = ""
-        print("{0: <15} {1:17} {2:7} {3:5} {4: <20} {5}".format(
+        print("{:<15} {:17} {:7} {:5} {:<20} {}".format(
             ip, servers[name].flavor['id'], reboot, version, str_state(detect_state(ip)), name))
         sys.stdout.flush()
     sys.exit(0)
