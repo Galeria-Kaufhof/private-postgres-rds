@@ -11,6 +11,7 @@ or the desired master and all the slaves.
 """
 
 from __future__ import print_function
+from multiprocessing import Pool
 from novaclient import client
 from os import path
 import json
@@ -108,6 +109,22 @@ def str_state(state):
 
 nova = login_to_nova()
 
+def server_details(name):
+    ip = detect_ip(servers[name])
+    lsres, status = run_remotely(host=ip, command="/bin/ls -1 /run/reboot-required", timeout=10)
+    if status == 0:
+        reboot = "REBOOT!"
+    else:
+        reboot = ""
+    lsres, status = run_remotely(host=ip, command="/usr/local/bin/pg_config --version", timeout=10)
+    if status == 0:
+        version = lsres.strip().split(" ")[1]
+    else:
+        version = ""
+    res = "{:<15} {:17} {:7} {:5} {:<20} {}".format(
+        ip, servers[name].flavor['id'], reboot, version, str_state(detect_state(ip)), name)
+    return res
+
 if "RDS_ALL_ZONES" in os.environ:
     # Print list of servers, with IP and postgres configuration status in human readable form,
     # no json - not a valid ansible inventory output
@@ -117,21 +134,10 @@ if "RDS_ALL_ZONES" in os.environ:
     # 10.31.35.180    performance1-2    REBOOT! 9.6.2 CONFIGURED_MASTER    int-postgres-test-2.example.com
     servers = {server.name : server for server in nova.servers.list(
         search_opts={'name': OrganizationConf.server_name_filter_all_zones()})}
-    for name in sorted(servers.keys()):
-        ip = detect_ip(servers[name])
-        lsres, status = run_remotely(host=ip, command="/bin/ls -1 /run/reboot-required", timeout=10)
-        if status == 0:
-            reboot = "REBOOT!"
-        else:
-            reboot = ""
-        lsres, status = run_remotely(host=ip, command="/usr/local/bin/pg_config --version", timeout=10)
-        if status == 0:
-            version = lsres.strip().split(" ")[1]
-        else:
-            version = ""
-        print("{:<15} {:17} {:7} {:5} {:<20} {}".format(
-            ip, servers[name].flavor['id'], reboot, version, str_state(detect_state(ip)), name))
-        sys.stdout.flush()
+    print("IP              Flavor            Require Ver   State                Hostname")
+    p = Pool(20)
+    details = p.map(server_details, sorted(servers.keys()))
+    print("\n".join(details))
     sys.exit(0)
 
 zone = get_env('ZONE')
