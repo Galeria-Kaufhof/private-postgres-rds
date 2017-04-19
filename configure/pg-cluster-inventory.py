@@ -111,18 +111,18 @@ nova = login_to_nova()
 
 def server_details(name):
     ip = detect_ip(servers[name])
-    lsres, status = run_remotely(host=ip, command="/bin/ls -1 /run/reboot-required", timeout=10)
-    if status == 0:
-        reboot = "REBOOT!"
-    else:
-        reboot = ""
-    lsres, status = run_remotely(host=ip, command="/usr/local/bin/pg_config --version", timeout=10)
-    if status == 0:
-        version = lsres.strip().split(" ")[1]
-    else:
-        version = ""
+    state = detect_state(ip)
+    reboot = ""
+    version = ""
+    if state != State.NOT_REACHABLE:
+        lsres, status = run_remotely(host=ip, command="/bin/ls -1 /run/reboot-required", timeout=10)
+        if status == 0:
+            reboot = "REBOOT!"
+        lsres, status = run_remotely(host=ip, command="/usr/local/bin/pg_config --version", timeout=10)
+        if status == 0:
+            version = lsres.strip().split(" ")[1]
     res = "{:<15} {:17} {:7} {:5} {:<20} {}".format(
-        ip, servers[name].flavor['id'], reboot, version, str_state(detect_state(ip)), name)
+        ip, servers[name].flavor['id'], reboot, version, str_state(state), name)
     return res
 
 if "RDS_ALL_ZONES" in os.environ:
