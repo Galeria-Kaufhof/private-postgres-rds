@@ -111,6 +111,10 @@ nova = login_to_nova()
 if "RDS_ALL_ZONES" in os.environ:
     # Print list of servers, with IP and postgres configuration status in human readable form,
     # no json - not a valid ansible inventory output
+    #
+    # Example output:
+    # 10.31.35.109    performance1-2            9.6.2 CONFIGURED_SLAVE     int-postgres-test-1.example.com
+    # 10.31.35.180    performance1-2    REBOOT! 9.6.2 CONFIGURED_MASTER    int-postgres-test-2.example.com
     servers = {server.name : server for server in nova.servers.list(
         search_opts={'name': OrganizationConf.server_name_filter_all_zones()})}
     for name in sorted(servers.keys()):
@@ -120,7 +124,13 @@ if "RDS_ALL_ZONES" in os.environ:
             reboot = "REBOOT!"
         else:
             reboot = ""
-        print("{0: <16} {1:8} {2: <20} {3}".format(ip, reboot, str_state(detect_state(ip)), name))
+        lsres, status = run_remotely(host=ip, command="/usr/local/bin/pg_config --version", timeout=10)
+        if status == 0:
+            version = lsres.strip().split(" ")[1]
+        else:
+            version = ""
+        print("{0: <15} {1:17} {2:7} {3:5} {4: <20} {5}".format(
+            ip, servers[name].flavor['id'], reboot, version, str_state(detect_state(ip)), name))
         sys.stdout.flush()
     sys.exit(0)
 
