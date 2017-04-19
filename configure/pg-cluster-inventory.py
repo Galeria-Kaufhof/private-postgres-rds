@@ -115,7 +115,12 @@ if "RDS_ALL_ZONES" in os.environ:
         search_opts={'name': OrganizationConf.server_name_filter_all_zones()})}
     for name in sorted(servers.keys()):
         ip = detect_ip(servers[name])
-        print("{0: <16} {1: <20} {2}".format(ip, str_state(detect_state(ip)), name))
+        lsres, status = run_remotely(host=ip, command="/bin/ls -1 /run/reboot-required", timeout=10)
+        if status == 0:
+            reboot = "REBOOT!"
+        else:
+            reboot = ""
+        print("{0: <16} {1:8} {2: <20} {3}".format(ip, reboot, str_state(detect_state(ip)), name))
         sys.stdout.flush()
     sys.exit(0)
 
