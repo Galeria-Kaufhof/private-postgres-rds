@@ -129,9 +129,13 @@ def restore_cluster(ctx, zone, db_instance, from_zone=None, from_db_instance=Non
 
 @task
 def initialize_servers(ctx, zone, db_instance_name):
-  '''Install postgres from tar, set up system service. Keep data folder empty. Next step: configure_cluster'''
-  for playbook in OrganizationConf.init_playbooks():
-    var = "BASIC_INVENTORY=true ZONE={zone} DB_INSTANCE_NAME={db_instance_name} ".format(**locals())
-    cmd = "pyenv/bin/ansible-playbook -i configure/pg-cluster-inventory.py -vv {}".format(playbook)
-    ctx.run(var + cmd, pty=True)
+    '''Install postgres from tar, set up system service. Keep data folder empty. Next step: configure_cluster'''
+    for playbook in OrganizationConf.init_playbooks():
+        var = "BASIC_INVENTORY=true ZONE={zone} DB_INSTANCE_NAME={db_instance_name} ".format(**locals())
+        cmd = "pyenv/bin/ansible-playbook -i configure/pg-cluster-inventory.py -vv {}".format(playbook)
+        ctx.run(var + cmd, pty=True)
 
+@task
+def info_list(ctx):
+    '''List all postgres related openstack VM instances.'''
+    ctx.run("RDS_ALL_ZONES=true configure/pg-cluster-inventory.py")

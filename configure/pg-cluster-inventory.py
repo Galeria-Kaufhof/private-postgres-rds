@@ -49,10 +49,67 @@ def login_to_nova():
             project_id=get_env('OS_TENANT_ID'),
             auth_url=get_env('OS_AUTH_URL'))
 
-zone = get_env('ZONE')
-db_instance_name = get_env('DB_INSTANCE_NAME')
+class State:
+    NOT_REACHABLE = 1     # stop the inventory due insufficient data
+    CONFIGURED_SLAVE = 2  # recovery.conf is present
+    CONFIGURED_MASTER = 3 # no recovery.conf but postgresql.conf
+    EMPTY_DATA_DIR = 4
+    DEACTIVATED = 5       # e.g. after rolling upgrade, but the VM not deleted yet
+    NOT_INITIALIZED = 6   # postgres is not installed yet
+    UNKNOWN = None
+
+def detect_state(server):
+    try:
+        lsres, status = run_remotely(host=server, command="/bin/ls -1 /var/local/postgresql/data", timeout=10)
+        files = [f.strip() for f in lsres.split("\n")]
+        if 'postgresql.conf.deactivated' in files:
+            return State.DEACTIVATED
+        elif 'recovery.conf' in files:
+            return State.CONFIGURED_SLAVE
+        elif 'postgresql.conf' in files:
+            return State.CONFIGURED_MASTER
+        elif status == 2:
+            lsres, status = run_remotely(host=server, command="/bin/ls -1 /var/local/postgresql", timeout=10)
+            if status == 2:
+                return State.NOT_INITIALIZED
+            else:
+                return State.EMPTY_DATA_DIR
+    except Exception as ex:
+        print("ssh connect to '{}' failed!".format(server))
+        return State.NOT_REACHABLE
+
+def str_state(state):
+    if state == State.NOT_REACHABLE:
+        return "NOT_REACHABLE"
+    elif state == State.CONFIGURED_SLAVE:
+        return "CONFIGURED_SLAVE"
+    elif state == State.CONFIGURED_MASTER:
+        return "CONFIGURED_MASTER"
+    elif state == State.EMPTY_DATA_DIR:
+        return "EMPTY_DATA_DIR"
+    elif state == State.DEACTIVATED:
+        return "DEACTIVATED"
+    elif state == State.UNKNOWN:
+        return "UNKNOWN"
+    elif state == State.NOT_INITIALIZED:
+        return "NOT_INITIALIZED"
+    else:
+        return '-----'
 
 nova = login_to_nova()
+
+if "RDS_ALL_ZONES" in os.environ:
+    # Print list of servers, with IP and postgres configuration status in human readable form,
+    # no json - not a valid ansible inventory output
+    servers = {server.name : State.UNKNOWN for server in nova.servers.list(
+        search_opts={'name': OrganizationConf.server_name_filter_all_zones()})}
+    for server in sorted(servers.keys()):
+        print("{0: <20} {1}".format(str_state(detect_state(server)), server))
+        sys.stdout.flush()
+    sys.exit(0)
+
+zone = get_env('ZONE')
+db_instance_name = get_env('DB_INSTANCE_NAME')
 
 def return_inventory(inv):
     print(json.dumps(inv, indent=2))
@@ -86,14 +143,6 @@ if 'BASIC_INVENTORY' in os.environ:
 
     return_inventory(res)
 
-class State:
-    NOT_REACHABLE = 1     # stop the inventory due insufficient data
-    CONFIGURED_SLAVE = 2  # recovery.conf is present
-    CONFIGURED_MASTER = 3 # no recovery.conf but postgresql.conf
-    EMPTY_DATA_DIR = 4
-    DEACTIVATED = 5       # e.g. after rolling upgrade, but the VM not deleted yet
-    UNKNOWN = None
-
 servers = {server.name : State.UNKNOWN for server in nova.servers.list(
     search_opts={'name': name_filter()})}
 
@@ -103,28 +152,16 @@ if len(servers) == 0:
 # Find out the configuration state of each server by checking the content of
 # the /var/local/postgres/data folder
 for server in servers.keys():
-    try:
-        lsres, status = run_remotely(host=server, command="/bin/ls -1 /var/local/postgresql/data", timeout=10)
-        files = [f.strip() for f in lsres.split("\n")]
-        if 'postgresql.conf.deactivated' in files:
-            servers[server] = State.DEACTIVATED
-        elif 'recovery.conf' in files:
-            servers[server] = State.CONFIGURED_SLAVE
-        elif 'postgresql.conf' in files:
-            servers[server] = State.CONFIGURED_MASTER
-        elif status == 2:
-            servers[server] = State.EMPTY_DATA_DIR
-    except Exception as ex:
-        print("ssh connect to '{}' failed! Thus no reliable, comprehensive inventory available.".format(server))
-        raise
-    # logging.info(files)
-    # logging.info("---{}------".format(status))
+    servers[server] = detect_state(server)
 
 logging.info(servers)
 
 def detect(servers, state):
     """Returns a list of server names with desired state"""
     return sorted([name for name, st in servers.iteritems() if st == state])
+
+if len(detect(servers, State.NOT_REACHABLE)) > 0:
+    raise Exception("Some servers not reachable. Thus no reliable, comprehensive inventory available!")
 
 candidates_master = detect(servers, State.CONFIGURED_MASTER)
 if len(candidates_master) > 1:

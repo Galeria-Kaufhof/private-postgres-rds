@@ -19,6 +19,10 @@ class BaseOrganizationConf():
         return "{}-postgres-{}-".format(zone, db_instance_name)
 
     @classmethod
+    def server_name_filter_all_zones(cls):
+        return "-postgres-"
+
+    @classmethod
     def service_url(cls, zone, db_instance_name):
         domain = cls.domain()
         return "{db_instance_name}-postgres.{zone}.{domain}".format(**locals())
