@@ -78,6 +78,16 @@ def detect_state(server):
         print("ssh connect to '{}' failed!".format(server))
         return State.NOT_REACHABLE
 
+def detect_ip(nova_server):
+    netw = dict(nova_server.networks)
+    del netw[u'private']
+    if len(netw) > 1:
+        raise Exception("Too many networks for server '{}': {}".format(nova_server.name, netw))
+    elif len(netw) == 0:
+        raise Exception("No networks found for server '{}'".format(nova_server.name))
+    else:
+        return netw.values()[0][0]
+
 def str_state(state):
     if state == State.NOT_REACHABLE:
         return "NOT_REACHABLE"
@@ -101,10 +111,11 @@ nova = login_to_nova()
 if "RDS_ALL_ZONES" in os.environ:
     # Print list of servers, with IP and postgres configuration status in human readable form,
     # no json - not a valid ansible inventory output
-    servers = {server.name : State.UNKNOWN for server in nova.servers.list(
+    servers = {server.name : server for server in nova.servers.list(
         search_opts={'name': OrganizationConf.server_name_filter_all_zones()})}
-    for server in sorted(servers.keys()):
-        print("{0: <20} {1}".format(str_state(detect_state(server)), server))
+    for name in sorted(servers.keys()):
+        ip = detect_ip(servers[name])
+        print("{0: <16} {1: <20} {2}".format(ip, str_state(detect_state(ip)), name))
         sys.stdout.flush()
     sys.exit(0)
 
@@ -125,21 +136,14 @@ if 'BASIC_INVENTORY' in os.environ:
     res['_meta'] = {}
     res['_meta']['hostvars'] = {}
     for server in nova.servers.list(search_opts={'name': name_filter()}):
-        netw = dict(server.networks)
-        del netw[u'private']
-        if len(netw) > 1:
-            raise Exception("Too many networks for server '{}': {}".format(server.name, netw))
-        elif len(netw) == 0:
-            raise Exception("No networks found for server '{}'".format(server.name))
-        else:
-            ip = netw.values()[0][0]
-            res['postgres'].append(ip)
-            res['_meta']['hostvars'][ip] = {"name": server.name}
+        ip = detect_ip(server)
+        res['postgres'].append(ip)
+        res['_meta']['hostvars'][ip] = {"name": server.name}
     res['all'] = {
             'vars': {
                 'installation_source': OrganizationConf.installation_source(),
             }
-        }
+    }
 
     return_inventory(res)
 
