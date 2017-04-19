@@ -1,3 +1,14 @@
+Disclaimer: this is not a 5-minute tutorial. Since it is about integration and
+long term operation and maintenance and since organization specific context
+including naming conventions, provisioning habits can vary considerably, you
+will have to implement some stuff along the way.
+
+But at the end you will get a solutions:
+
+* you can run anywhere: in the public cloud, private cloud, on premises
+* customized to you existing situation
+* with postgres extensions and versions you like
+* and hopefully as maintenance friendly as AWS RDS
 
 1. Create servers
 -----------------
@@ -17,7 +28,7 @@ Typical setup will include 2 servers for every development team for every
 * a hot-standby **slave**, which can quickly take over in case the master gets
   broken
 
-Choose some naming convention like and name servers according to it. For
+Choose some naming convention and name servers according to it. For
 ``integration`` zone/stage and the ``orderdata`` topic or team create two
 servers::
 
@@ -29,6 +40,7 @@ servers::
 
 2. Install prerequisites::
 --------------------------
+  # install pyinvoke http://www.pyinvoke.org/installing.html
 
   # clone this project
   git clone https://github.com/Galeria-Kaufhof/private-postgres-rds.git
