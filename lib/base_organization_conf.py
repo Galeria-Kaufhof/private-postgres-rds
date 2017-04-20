@@ -16,7 +16,7 @@ class BaseOrganizationConf():
 
     @classmethod
     def server_name_filter(cls, zone, db_instance_name):
-        return "{}-postgres-{}-".format(zone, db_instance_name)
+        return "^{}-postgres-{}-".format(zone, db_instance_name)
 
     @classmethod
     def server_name_filter_all_zones(cls):
