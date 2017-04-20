@@ -62,6 +62,7 @@ def restore_step(context, pit=True):
 
 @when(u'I memorize current time for later PIT recovery')
 def step_impl(context):
+    time.sleep(1) # let db operations finish and commit; round up to a second
     context.time_for_pit_recovery = datetime.utcnow() # our servers including postgres use UTC
 
 wipe_out_command = "systemctl stop postgresql.service; rm -rf /var/local/postgresql/data/"
