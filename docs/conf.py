@@ -49,7 +49,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'Private Postgres RDS'
-copyright = u'2017, Vladimir Dobriakov'
+copyright = u'2017, Galeria Kaufhof GmbH'
 author = u'Vladimir Dobriakov'
 
 # The version info for the project you're documenting, acts as replacement for
