@@ -126,9 +126,12 @@ Maybe the developers put their tables inside schemas?
 
 (Alternatively run psql with a service url - you will need the password)
 
-2. List relations with ``\d``. If the list is empty, try ``\dn`` (list schemas). If you see entries beyond ``public``, use the schema name ``\dt schema-name-from-previous-list.*`` and finally ``select count(*) from schema-name.table-name;``
+2. List databases with ``\l``. Choose the desired one, connect with
+  ``\c database-name-from-the-list``
 
-3. Of list the biggest tables::
+3. List relations with ``\d``. If the list is empty, try ``\dn`` (list schemas). If you see entries beyond ``public``, use the schema name ``\dt schema-name-from-previous-list.*`` and finally ``select count(*) from schema-name.table-name;``
+
+4. Of list the biggest tables::
 
   # relpages is the number of 8 Kilobyte pages used by each table.
   SELECT relname, relpages FROM pg_class ORDER BY 2 DESC;

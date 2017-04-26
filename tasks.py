@@ -33,9 +33,14 @@ def credentials_store():
     return path.abspath(path.join(__file__, '../../postgres-credentials'))
 
 @task(help={'aws-account':
-    "We use different aws accounts for development and production. Please select e.g. `dev` or `prod`"})
+    "We use different AWS accounts for development and production. Please select e.g. `dev` or `prod`"})
 def once_organization_wide(ctx, aws_account):
-    """Run this task once, organization wide, not per db instance"""
+    """Run this task once, organization wide, not per db instance.
+    If you use different AWS accounts for dev and prod S3 backup buckets,
+    you actually need to run it more than once - once for each account.
+    See http://private-postgres-rds.readthedocs.io (TODO full url) to read more
+    about security concepts for backup users and credentials.
+    """
     ctx.run("ansible-playbook organization-once/configure-once.playbook.yaml -vv --extra-vars='credentials_store={} aws_account={}'".format(credentials_store(), aws_account), pty=True, echo=True)
 
 def str_var_dict(var_dict=None):
