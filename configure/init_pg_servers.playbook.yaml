@@ -277,12 +277,15 @@
 
     - debug:
         msg: |
+
           You can now use the postgres instance with
 
           psql -h {{ postgres_service_domain }} -U admin -d postgres
 
           The password, initially set by this ansible playbook is
           {{ admin_password }}
+          Please change on first usage!
+          Please create additional users with less privileges to use with you application!
 
   handlers:
     - name: Restart postgres
