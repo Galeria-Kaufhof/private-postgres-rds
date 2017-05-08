@@ -51,8 +51,8 @@
         src: "files/postgresql.service"
         dest: "/etc/systemd/system/postgresql.service"
         mode: 0644
-      when: data_folder.stat.exists == False
       notify:
+        - Reenable service
         - Reload systemd daemon
 
     - name: Create postgres user
@@ -76,5 +76,8 @@
       become: false
 
   handlers:
+    - name: Reenable service
+      systemd: name=postgresql enabled=yes
+
     - name: Reload systemd daemon
       shell: systemctl daemon-reload
