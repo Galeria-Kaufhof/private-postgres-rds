@@ -15,7 +15,7 @@ then
   exit 1
 fi
 
-. /var/local/postgresql/aws_backup.credentials.sh
+. /var/local/postgresql/aws_restore.credentials.sh
 mkdir -p /var/local/postgresql/data
 chmod 700 /var/local/postgresql/data
 cd /var/local/postgresql/data

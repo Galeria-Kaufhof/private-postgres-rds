@@ -12,6 +12,7 @@
     - set_fact:
         backup_bucket_name:  "backup--{{ postgres_service_domain }}"
         backup_user_name:    "backuper-{{ db_instance_name }}-{{ zone }}"
+        restore_user_name:   "backuper-{{ from_db_instance }}-{{ zone }}"
         admin_password:      "{{ lookup('password', credentials_store + '/psql/' + zone + '/' + db_instance_name + '/admin_password chars=ascii_letters,digits') }}"
         replicator_password: "{{ lookup('password', credentials_store + '/psql/' + zone + '/' + db_instance_name + '/replicator_password chars=ascii_letters,digits') }}"
     - debug: var=hostvars[inventory_hostname]
@@ -112,6 +113,9 @@
         src: "restore_backup.sh.j2"
         dest: "/var/local/postgresql/restore_backup.sh"
         mode: 0555
+    - name: Copy restore bucket credentials
+      copy: dest=/var/local/postgresql/aws_restore.credentials.sh
+        src="{{ credentials_store }}/backup/{{ restore_user_name }}.credentials.sh"
 
     - name: Case 2 - restore from backup - extract data
       shell: "/var/local/postgresql/restore_backup.sh {{ recover_from }} '{{recovery_target_time | default() }}'"
@@ -155,8 +159,6 @@
         owner: postgres
         path: "/var/local/postgresql/log"
 
-
-
     - name: Copy backup bucket credentials
       copy: dest=/var/local/postgresql/aws_backup.credentials.sh
         src="{{ credentials_store }}/backup/{{ backup_user_name }}.credentials.sh"
@@ -173,7 +175,7 @@
         dest: "/var/local/postgresql/archive_xlog_to_aws.sh"
         mode: 0555
 
-    - name: Run full backup
+    - name: Configure full backup
       cron:
         name: postgres full backup
         minute: "45"

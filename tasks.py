@@ -126,7 +126,7 @@ def restore_cluster(ctx, zone, db_instance, from_zone=None, from_db_instance=Non
         print("""
         Starting recovery
         """)
-        more_vars = {'recover_from': recover_from}
+        more_vars = {'recover_from': recover_from, 'from_db_instance': from_db_instance}
         if target_time:
             more_vars['recovery_target_time'] = '"{}"'.format(target_time) # need quoting due to space char
 
