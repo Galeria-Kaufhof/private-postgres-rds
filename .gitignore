@@ -1,2 +1,4 @@
 organization_conf.py
 *.pyc
+pyenv
+*.playbook.retry
