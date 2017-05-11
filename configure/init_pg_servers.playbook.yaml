@@ -239,6 +239,7 @@
 
 - name: Configure postgres slaves
   hosts: slaves
+  remote_user: root
   tasks:
     - name: Check existing configuration file
       stat: path=/var/local/postgresql/data/postgresql.conf
