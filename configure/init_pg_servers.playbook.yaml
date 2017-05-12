@@ -12,7 +12,6 @@
     - set_fact:
         backup_bucket_name:  "backup--{{ postgres_service_domain }}"
         backup_user_name:    "backuper-{{ db_instance_name }}-{{ zone }}"
-        restore_user_name:   "backuper-{{ from_db_instance }}-{{ zone }}"
         admin_password:      "{{ lookup('password', credentials_store + '/psql/' + zone + '/' + db_instance_name + '/admin_password chars=ascii_letters,digits') }}"
         replicator_password: "{{ lookup('password', credentials_store + '/psql/' + zone + '/' + db_instance_name + '/replicator_password chars=ascii_letters,digits') }}"
     - debug: var=hostvars[inventory_hostname]
@@ -115,7 +114,8 @@
         mode: 0555
     - name: Copy restore bucket credentials
       copy: dest=/var/local/postgresql/aws_restore.credentials.sh
-        src="{{ credentials_store }}/backup/{{ restore_user_name }}.credentials.sh"
+        src="{{ credentials_store }}/backup/backuper-{{ from_db_instance }}-{{ zone }}.credentials.sh"
+      when: from_db_instance is defined
 
     - name: Case 2 - restore from backup - extract data
       shell: "/var/local/postgresql/restore_backup.sh {{ recover_from }} '{{recovery_target_time | default() }}'"
