@@ -280,6 +280,7 @@
 
     - debug:
         msg: |
+          Please remember to set up monitoring for the new cluster - is currently a separate step!
 
           You can now use the postgres instance with
 
