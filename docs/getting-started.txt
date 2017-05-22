@@ -1,3 +1,7 @@
+===============
+Getting started
+===============
+
 Disclaimer: this is not a 5-minute tutorial. Since it is about integration and
 long term operation and maintenance and since organization specific context
 including naming conventions, provisioning habits can vary considerably, you

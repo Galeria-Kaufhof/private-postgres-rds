@@ -13,6 +13,6 @@ and `practical realization`_.
 
 So you wish something like RDS, but on premises or with flexible hosting
 options. Use the implementation code in this project as an inspiration or
-`start with a walk-through! <docs/getting-started.txt>`_
+`start with a walk-through! <http://private-postgres-rds.readthedocs.io/en/latest/getting-started.html>`_
 
 Copyright (c) 2017 Galeria Kaufhof GmbH

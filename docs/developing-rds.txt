@@ -1,6 +1,11 @@
+===========
+Development
+===========
 
-Run tests::
------------
+Run tests
+---------
+
+To run tests:
 
   behave test/features
 
