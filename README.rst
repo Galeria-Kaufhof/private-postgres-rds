@@ -1,3 +1,7 @@
+.. image:: https://readthedocs.org/projects/private-postgres-rds/badge/?version=latest
+:target: http://private-postgres-rds.readthedocs.io/en/latest/?badge=latest
+:alt: Documentation Status
+
 Amazon's relational database service (RDS) has set high standards for reliable,
 low-maintenance databases as a service.
 
