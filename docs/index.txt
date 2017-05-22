@@ -5,6 +5,9 @@ Welcome to Private Postgres RDS's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   getting-started
+   operator-handbook
+   developing-rds
 
 
 Indices and tables

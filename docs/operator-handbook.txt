@@ -8,7 +8,7 @@ Create cluster for a new team/problem domain
 
 1. create new VM instances and install postgres as described in getting-started
 2. configure the fresh cluster with ``invoke configure_cluster ...``, see
-``invoke --help configure_cluster``
+   ``invoke --help configure_cluster``
 
 
 ------------------------------
@@ -122,20 +122,20 @@ Maybe the developers put their tables inside schemas?
 
 1. Log in to server and run psql there::
 
-  sudo -u postgres psql
+    sudo -u postgres psql
 
 (Alternatively run psql with a service url - you will need the password)
 
 2. List databases with ``\l``. Choose the desired one, connect with
-  ``\c database-name-from-the-list``
+    ``\c database-name-from-the-list``
 
 3. List relations with ``\d``. If the list is empty, try ``\dn`` (list schemas). If you see entries beyond ``public``, use the schema name ``\dt schema-name-from-previous-list.*`` and finally ``select count(*) from schema-name.table-name;``
 
 4. Of list the biggest tables::
 
-  # relpages is the number of 8 Kilobyte pages used by each table.
-  SELECT relname, relpages FROM pg_class ORDER BY 2 DESC;
-  # via https://www.chrisnewland.com/find-biggest-tables-in-postgres-91
+    # relpages is the number of 8 Kilobyte pages used by each table.
+    SELECT relname, relpages FROM pg_class ORDER BY 2 DESC;
+    # via https://www.chrisnewland.com/find-biggest-tables-in-postgres-91
 
 
 --------------------------------------------------------------------------------------------------
