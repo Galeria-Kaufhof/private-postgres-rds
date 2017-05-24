@@ -2,6 +2,10 @@
 Development
 ===========
 
+Source code is at `github <https://github.com/Galeria-Kaufhof/private-postgres-rds>`_.
+
+Fork, change, add tests, make a pull request!
+
 Run tests
 ---------
 
