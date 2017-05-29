@@ -170,7 +170,8 @@ due some other reason?
 
 1. Preparation: instantiate postgres servers in the new data center
 2. Shut down postgres servers gracefully in the old datacenter (downtime begins)
-3. Restore in the new datacenter from existing backup
+3. Restore in the new datacenter from existing backup, e.g. 30 minutes from S3
+   bucket for a 27 GB database (depends on network connection and server power)
 
 
 **Solution B**, less downtime, more implementation effort:
