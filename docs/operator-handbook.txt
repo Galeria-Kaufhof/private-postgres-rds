@@ -157,3 +157,27 @@ Shows:
 * which postgresql server version is installed
 * the server state: master/slave/not configured/not reachable etc.
 * the openstack name of the server
+
+
+------------------------------------
+Migrating to a different data center
+------------------------------------
+
+What if I want to change my hosting provider or move to a different data center
+due some other reason?
+
+**Solution A**, with downtime for duration of restore, little implementation effort:
+
+1. Preparation: instantiate postgres servers in the new data center
+2. Shut down postgres servers gracefully in the old datacenter (downtime begins)
+3. Restore in the new datacenter from existing backup
+
+
+**Solution B**, less downtime, more implementation effort:
+
+1. Instantiate postgres servers in the new data center
+2. Set up firewall for postgres communication between data centers, port 5432
+3. Set up replication from old data center to the new - manually create recovery.conf
+4. Shut down postgres servers gracefully in the old datacenter (downtime begins)
+5. Promote existing slave in the new data center to master
+
