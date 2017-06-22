@@ -132,7 +132,7 @@ def restore_cluster(ctx, zone, db_instance, from_zone=None, from_db_instance=Non
 
         ctx.run(init_pg_servers_play_run(zone, db_instance, more_vars=more_vars), pty=True, echo=True)
 
-@task
+@task(help={'db-instance-name': "short name describing the instance"})
 def initialize_servers(ctx, zone, db_instance_name):
     '''Install postgres from tar, set up system service. Keep data folder empty. Next step: configure_cluster'''
     for playbook in OrganizationConf.init_playbooks():
