@@ -68,7 +68,9 @@ def configure_cluster(ctx, zone, db_instance_name):
     Implementation: runs `init_pg_cluster` playbook."""
     ctx.run(init_pg_servers_play_run(zone, db_instance_name), pty=True, echo=True)
 
-@task
+@task(help={'zone': "The corresponding network zone",
+            'db-instance-name': "Short name of the db instance, e.g. bsna",
+            'target-master': "fqdn of the target master" })
 def migrate_to_master(ctx, zone, db_instance_name, target_master):
     """Helps with rolling upgrade. Typical case: replace master+slave by new,
     upgraded, replicated master+slave.
