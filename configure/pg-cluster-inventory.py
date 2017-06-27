@@ -138,6 +138,7 @@ if "RDS_ALL_ZONES" in os.environ:
     p = Pool(20)
     details = p.map(server_details, sorted(servers.keys()))
     print("\n".join(details))
+    print("Note: information above can be inconsistent, if ansible playbook is running just at this moment.")
     sys.exit(0)
 
 zone = get_env('ZONE')
