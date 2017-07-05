@@ -62,7 +62,7 @@ listen_addresses = '*'		# what IP address(es) to listen on;
 					# defaults to 'localhost'; use '*' for all
 					# (change requires restart)
 #port = 5432				# (change requires restart)
-max_connections = 100			# (change requires restart)
+max_connections = 200			# (change requires restart)
 #superuser_reserved_connections = 3	# (change requires restart)
 #unix_socket_directories = '/tmp'	# comma-separated list of directories
 					# (change requires restart)
@@ -111,7 +111,7 @@ max_connections = 100			# (change requires restart)
 
 # - Memory -
 
-shared_buffers = 128MB			# min 128kB
+shared_buffers = 200MB			# min 128kB
 					# (change requires restart)
 #huge_pages = try			# on, off, or try
 					# (change requires restart)
