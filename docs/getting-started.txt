@@ -42,8 +42,11 @@ servers::
 * install minimal e.g. Ubuntu or CentOS system
 * ensure key-based ssh works from your machine and you can ssh as root
 
-2. Install prerequisites::
---------------------------
+2. Install prerequisites
+------------------------
+
+::
+
   # install pyinvoke http://www.pyinvoke.org/installing.html
 
   # clone this project
@@ -64,13 +67,17 @@ servers::
   # Create project specific python virtual environment in a subfolder
   invoke --help sync_virtualenv
 
-3. Install postgres on every server::
--------------------------------------
+3. Install postgres on every server
+-----------------------------------
+
+::
 
   invoke --help initialize_servers
 
 4. Configure postgres cluster
 -----------------------------
+
+::
 
   invoke --help configure_cluster
 
