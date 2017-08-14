@@ -49,7 +49,9 @@ def str_var_dict(var_dict=None):
     else:
         return ' '.join(["{}={}".format(k, var_dict[k]) for k in var_dict]) # TODO escaping
 
-def init_pg_servers_play_run(zone, db_instance_name, more_vars=None, more_env_vars=None):
+def init_pg_servers_play_run(zone, db_instance_name, incremental_backup, more_vars=None, more_env_vars=None):
+    if incremental_backup not in ["on", "off"]:
+        raise ValueError("Only 'on', 'off' are supported as values for '--incremental-backup'")
     # load AWS credentials for backup_configurer user
     cred_file = "{}/backup/{}/configurer.credentials.properties".format(
             credentials_store(), OrganizationConf.backup_aws_account_for_zone(zone))
@@ -60,18 +62,23 @@ def init_pg_servers_play_run(zone, db_instance_name, more_vars=None, more_env_va
     more = str_var_dict(more_vars)
     more_env = str_var_dict(more_env_vars)
     inventory = "configure/pg-cluster-inventory.py"
-    return "{aws_env} ZONE={zone} {more_env} DB_INSTANCE_NAME={db_instance_name} ansible-playbook configure/init_pg_servers.playbook.yaml --extra-vars='credentials_store={cred} zone={zone} db_instance_name={db_instance_name} {more}' -i {inventory} -vv".format(**locals())
+    return "{aws_env} ZONE={zone} {more_env} DB_INSTANCE_NAME={db_instance_name} ansible-playbook configure/init_pg_servers.playbook.yaml --extra-vars='credentials_store={cred} zone={zone} db_instance_name={db_instance_name} incremental_backup={incremental_backup} {more}' -i {inventory} -vv".format(**locals())
 
-@task
-def configure_cluster(ctx, zone, db_instance_name):
+ARGS_HELP = {
+        'zone': "The corresponding network zone",
+        'db-instance-name': "Short name of the db instance, e.g. bsna",
+        'incremental-backup': "'on'/'off' for incremental backup facilitating point-in-time recovery",
+        'target-master': "fqdn of the target master" }
+
+@task(positional=[], help=ARGS_HELP)
+def configure_cluster(ctx, zone, db_instance_name, incremental_backup):
     """Initialize an empty cluster or update configuration of a running cluster.
     Implementation: runs `init_pg_cluster` playbook."""
-    ctx.run(init_pg_servers_play_run(zone, db_instance_name), pty=True, echo=True)
+    ctx.run(init_pg_servers_play_run(zone, db_instance_name, incremental_backup),
+        pty=True, echo=True)
 
-@task(help={'zone': "The corresponding network zone",
-            'db-instance-name': "Short name of the db instance, e.g. bsna",
-            'target-master': "fqdn of the target master" })
-def migrate_to_master(ctx, zone, db_instance_name, target_master):
+@task(positional=[], help=ARGS_HELP)
+def migrate_to_master(ctx, zone, db_instance_name, target_master, incremental_backup):
     """Helps with rolling upgrade. Typical case: replace master+slave by new,
     upgraded, replicated master+slave.
     Implementation: runs 3-step provisioning:
@@ -81,8 +88,8 @@ def migrate_to_master(ctx, zone, db_instance_name, target_master):
     """
     def provision(more_env_vars):
         print("DEBUG ****** provision during migration ******* ", more_env_vars)
-        print(init_pg_servers_play_run(zone, db_instance_name, more_env_vars=more_env_vars))
-        ctx.run(init_pg_servers_play_run(zone, db_instance_name, more_env_vars=more_env_vars), pty=True, echo=True)
+        ctx.run(init_pg_servers_play_run(zone, db_instance_name, incremental_backup,
+            more_env_vars=more_env_vars), pty=True, echo=True)
 
     provision({'ENFORCE_SLAVE_UPSTREAM': target_master}) # step 1, see docstring above
     # provision({'ENFORCE_SLAVE_UPSTREAM': target_master}) # step 2, TODO later: find out,
