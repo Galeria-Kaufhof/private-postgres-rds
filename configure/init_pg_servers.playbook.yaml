@@ -10,7 +10,6 @@
   tasks:
     - debug: var=hostvars[inventory_hostname]["group_names"]
     - set_fact:
-        archive_mode: "{{ archiving | default('on') }}"
         backup_bucket_name:  "backup--{{ postgres_service_domain }}"
         backup_user_name:    "backuper-{{ db_instance_name }}-{{ zone }}"
         admin_password:      "{{ lookup('password', credentials_store + '/psql/' + zone + '/' + db_instance_name + '/admin_password chars=ascii_letters,digits') }}"
@@ -144,7 +143,6 @@
       template:
         src: "postgresql.conf.j2"
         dest: "/var/local/postgresql/data/postgresql.conf"
-        force: 'no'
       notify: Restart postgres
     - name: Copy postgres hba file
       template:

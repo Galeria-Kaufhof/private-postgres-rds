@@ -213,7 +213,7 @@ wal_level = replica			# minimal, replica, or logical
 
 # - Archiving -
 
-archive_mode = {{ archive_mode }}		# enables archiving; off, on, or always
+archive_mode = on		# enables archiving; off, on, or always
 				# (change requires restart)
 archive_command = '/var/local/postgresql/archive_xlog_to_aws.sh %p %f >>/var/local/postgresql/log/backup.log 2>&1'
 		# command to use to archive a logfile segment
