@@ -1,0 +1,2 @@
+# You can provide your own installation source, like a mirrored tar.gz in your Nexus, FTP server or Artifactory
+installation_source: "https://get.enterprisedb.com/postgresql/postgresql-9.6.2-3-linux-x64-binaries.tar.gz"

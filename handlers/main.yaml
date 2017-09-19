@@ -1,0 +1,5 @@
+- name: Reenable service
+  systemd: name=postgresql enabled=yes
+
+- name: Reload systemd daemon
+  shell: systemctl daemon-reload

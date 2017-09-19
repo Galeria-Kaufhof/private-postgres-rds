@@ -1,0 +1,71 @@
+---
+- name: Check if data folder exists
+  stat: path=/var/local/postgresql/data
+  register: data_folder
+
+# skip whole execution if postgres is already configured and running, i.e. data folder exists
+
+- name: Install prerequisites - required for creating users etc.
+  apt: name={{item}} state=present
+  with_items:
+    - libpq-dev
+    - python-psycopg2
+    - mc
+    - awscli
+    - debian-goodies # for checkrestart
+      # - postgresql-client
+  tags:
+    - packages
+  when: data_folder.stat.exists == False
+  # TODO when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+  # TODO support RHEL too
+
+- name: Install postgres from tar
+  unarchive:
+    src: "{{ installation_source }}"
+    dest: /usr/local
+    copy: no
+  when: data_folder.stat.exists == False
+
+- name: List installed postgres tools
+  shell: ls -1 /usr/local/pgsql/bin/
+  when: data_folder.stat.exists == False
+  register: pgtools_list
+
+- name: Create symbolic links for postgres tools
+  file:
+    src:  /usr/local/pgsql/bin/{{ item }}
+    dest: /usr/local/bin/{{ item }}
+    state: link
+  # work around ansible issue 16222 using `| default([])`
+  with_items: "{{ pgtools_list.stdout_lines | default([]) }}"
+  when: data_folder.stat.exists == False
+
+- name: Define service with systemd
+  template:
+    src: "files/postgresql.service"
+    dest: "/etc/systemd/system/postgresql.service"
+    mode: 0644
+  notify:
+    - Reenable service
+    - Reload systemd daemon
+
+- name: Create postgres user
+  user: name=postgres state=present shell="/bin/bash" comment="PostgreSQL administrator"
+  when: data_folder.stat.exists == False
+
+- name: Create postgres data folder
+  file: state=directory dest=/var/local/postgresql owner=postgres group=postgres mode=700
+  when: data_folder.stat.exists == False
+
+- name: "Reboot if required"
+  shell: sleep 2 && shutdown -r now 'Reboot required' removes=/var/run/reboot-required
+  become: true
+  async: 1
+  poll: 0
+  ignore_errors: true
+  when: data_folder.stat.exists == False
+
+- name: "Wait for reboot"
+  local_action: wait_for host={{ inventory_hostname }} port=22 delay=8 state=started
+  become: false
