@@ -1,0 +1,89 @@
+# This sub-role detects which node is a MASTER/SLAVE and build inventory groups accordingly.
+# It will also check edge conditions and fail if it is violated.
+# vars:
+#   for_pg_role=MASTER(default)|SLAVE
+#   debug_output=no(default)|yes
+# Possible state transitions:
+#   MASTER         --> DEACTIVATED (self-fencing, not provisioning)
+#                  +-> SLAVE (switch-over, not provisioning)
+#   SLAVE          --> MASTER (fail-over/switch-over, not provisioning)
+#   EMPTY_DATA_DIR --> MASTER (provisioning, if no SLAVEs and no other MASTER)
+#                  +-> SLAVE (provisioning)
+#   DEACTIVATED    --> EMPTY_DATA_DIR (manually)
+- name: Assert no limit used to run the Playbook
+  assert: { that: "ansible_play_hosts|length == groups['postgres']|length", msg: "You should run this play without setting --limit, with at least two nodes in _db-postgresql_ group."}
+
+- set_fact:
+    for_pg_roleU: "{{(for_pg_role|default('MASTER'))|upper}}"
+    debug_output: "{{debug_output|default(False)}}"
+
+- debug: var=ansible_local.pg
+  when: debug_output
+
+- name: Assert pg-custom facts exist
+  assert: { that: "ansible_local.pg is defined", msg: "This node needs software install with _provision_postgresq.yml_ first."}
+- name: Assert pg.state is detected
+  assert: { that: "ansible_local.pg.state is defined", msg: "This node is missing custom facts _pg.fact_."}
+
+- name: Build a group of MASTER nodes
+  group_by: key="db-postgresql-MASTER"
+  when: ansible_local.pg.state.upper() == 'CONFIGURED_MASTER'
+- name: Build a group of SLAVE nodes
+  group_by: key="db-postgresql-SLAVE"
+  when: ansible_local.pg.state.upper() == 'CONFIGURED_SLAVE'
+- name: Build a group of DEACTIVATED nodes
+  group_by: key="db-postgresql-DEACTIVATED"
+  when: ansible_local.pg.state.upper() == 'DEACTIVATED'
+- name: Build a group of EMPTY_DATA_DIR nodes
+  group_by: key="db-postgresql-EMPTY_DATA_DIR"
+  when: ansible_local.pg.state.upper() == 'EMPTY_DATA_DIR'
+
+- set_fact:
+    number_of_master_nodes="{% if 'db-postgresql-MASTER' in groups %}{{groups['db-postgresql-MASTER']|length}}{% else %}0{% endif %}"
+    number_of_slave_nodes="{% if 'db-postgresql-SLAVE' in groups %}{{groups['db-postgresql-SLAVE']|length}}{% else %}0{% endif %}"
+    number_of_deactivated_nodes="{% if 'db-postgresql-DEACTIVATED' in groups %}{{groups['db-postgresql-DEACTIVATED']|length}}{% else %}0{% endif %}"
+    master_node="{% if 'db-postgresql-MASTER' in groups %}{{groups['db-postgresql-MASTER'][0]}}{% else %}None{% endif %}"
+
+- debug:
+    msg:
+      - "Found {{number_of_master_nodes}} master({{master_node}}) and {{number_of_slave_nodes}} slave node(s) configured"
+      - "All        : {{groups['db-postgresql']|join(', ')}}"
+      - "Master     : {% if 'db-postgresql-MASTER' in groups %}{{groups['db-postgresql-MASTER']|join(', ')}}{% endif %}"
+      - "Slave(s)   : {% if 'db-postgresql-SLAVE' in groups %}{{groups['db-postgresql-SLAVE']|join(', ')}}{% endif %}"
+      - "Deactivated: {% if 'db-postgresql-DEACTIVATED' in groups %}{{groups['db-postgresql-DEACTIVATED']|join(', ')}}{% endif %}"
+  when: debug_output
+  run_once: yes
+
+- name: Assert not more than one master
+  assert: { that: "number_of_master_nodes|int < 2", msg: "Too many master-nodes, it should be not more than one" }
+  run_once: yes
+
+- name: There are no configured masters yet
+  block:
+  - set_fact: potential_masters={{ groups['db-postgresql-EMPTY_DATA_DIR'] }}
+  - name: Assert there are no slaves without a master
+    assert: { that: "number_of_slave_nodes|int == 0", msg: "There are already slaves but no master. This cluster will not work properly."}
+  - name: Assert there are empty node(s) to be configured as master
+    assert: { that: "potential_masters|length > 0", msg: "There are no nodes to be setup as master. Please formate a new node."}
+  - debug: msg="There was no master node in the replication cluster. {{potential_masters[0]}} is chosen to be the master."
+  - name: Choose one random node to be a master
+    add_host:
+      name: "{{ potential_masters[0] }}"
+      groups: 'db-postgresql-MASTER'
+  when: (number_of_master_nodes|int == 0) and (for_pg_roleU == 'MASTER')
+  run_once: yes
+
+- name: There are no configured slaves yet
+  block:
+  - name: Assert there is a master already configured
+    assert: { that: "number_of_master_nodes|int == 1", msg: "There is no master node in the replication cluster. Please setup a master node." }
+  - name: Assert there are empty nodes to be configured as a slave
+    assert: { that: "'db-postgresql-EMPTY_DATA_DIR' in groups", msg: "There is no EMPTY_DATA_DIR node, to be used as a slave." }
+  - set_fact: potential_slaves={{ groups['db-postgresql-EMPTY_DATA_DIR'] }}
+  - debug: msg="There was no slave node in the replication cluster. {{potential_slaves[0]}} is chosen to be a slave."
+  - name: Choose one random node to be a slave
+    add_host:
+      name: "{{ potential_slaves[0] }}"
+      groups: 'db-postgresql-SLAVE'
+  when: (number_of_slave_nodes|int == 0) and (for_pg_roleU == 'SLAVE')
+  run_once: yes

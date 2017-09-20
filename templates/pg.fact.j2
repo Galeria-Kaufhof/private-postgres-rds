@@ -1,4 +1,5 @@
 #!/usr/bin/env python2
+# vim: syntax=python
 """
 Ansible custom facts about a postgres node:
 """
@@ -26,7 +27,7 @@ def detect_state():
     status = 0
     lsres = ""
     try:
-        lsres = subprocess.check_output(['ls', '-1','{{pg_data_dir}}'])
+        lsres = subprocess.check_output(['ls', '-1','{{ pg_data_dir }}/data'])
     except CalledProcessError as ex:
         status = ex.returncode
         lsres = ex.output
@@ -41,7 +42,7 @@ def detect_state():
         return State.CONFIGURED_MASTER
     elif status == 2:
         try:
-            lsres = subprocess.check_output(['ls', '-1', '{{pg_rpm_install_bin_dir}}'])
+            lsres = subprocess.check_output(['ls', '-1', '{{ pg_data_dir }}'])
         except CalledProcessError as ex:
             status = ex.returncode
             lsres = ex.output

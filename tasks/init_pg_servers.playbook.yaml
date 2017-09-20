@@ -1,6 +1,6 @@
 ---
 - name: Global vars and naming conventions
-  hosts: all
+  hosts: postgres
   gather_facts: false
   remote_user: root
   vars:
@@ -69,7 +69,7 @@
     # TODO implement "Permanently delete previous versions" a new ansible module, use boto3
 
 - name: Deactivate obsolete master and slaves
-  hosts: deactivate
+  hosts: postgres-deactivate
   gather_facts: False
   remote_user: root
   become_user: root
@@ -88,7 +88,7 @@
         creates: /var/local/postgresql/data/postgresql.conf.deactivated
 
 - name: Set up (possibly new) postgres master
-  hosts: master
+  hosts: postgres-master
   gather_facts: False
   remote_user: root
   become_user: root
@@ -199,7 +199,7 @@
 
 
 - name: Register postgres master
-  hosts: master
+  hosts: postgres-master
   gather_facts: False
   remote_user: root
   become_user: root
@@ -218,7 +218,7 @@
       service: name=postgresql enabled=yes state=started
 
 - name: Create, set up postgres users
-  hosts: master
+  hosts: postgres-master
   gather_facts: False
   remote_user: root
   become_user: postgres
@@ -240,7 +240,7 @@
         role_attr_flags: REPLICATION
 
 - name: Configure postgres slaves
-  hosts: slaves
+  hosts: postgres-slaves
   remote_user: root
   tasks:
     - name: Check existing configuration file

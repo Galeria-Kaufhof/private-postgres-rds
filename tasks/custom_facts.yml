@@ -10,11 +10,10 @@
     mode: 0755
   with_items:
     - pg.fact
-    - id_rsa_pub.fact
   register: uploaded
 
 - name: "Re-run setup to use custom facts"
   setup: ~
   when: uploaded.changed
 
-#- debug: msg="{{ansible_local}}"
+- debug: msg="{{ansible_local}}"
