@@ -28,7 +28,7 @@ def detect_state():
     lsres = ""
     try:
         lsres = subprocess.check_output(['ls', '-1','{{ pg_data_dir }}/data'])
-    except CalledProcessError as ex:
+    except subprocess.CalledProcessError as ex:
         status = ex.returncode
         lsres = ex.output
     # print(status, lsres)
