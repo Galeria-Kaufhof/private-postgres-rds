@@ -1,0 +1,20 @@
+- name: Create a custom facts directory
+  file:
+    path: /etc/ansible/facts.d
+    state: directory
+
+- name: Upload a postgres-fact file
+  template:
+    src: "{{item}}.j2"
+    dest: "/etc/ansible/facts.d/{{item}}"
+    mode: 0755
+  with_items:
+    - pg.fact
+    - id_rsa_pub.fact
+  register: uploaded
+
+- name: "Re-run setup to use custom facts"
+  setup: ~
+  when: uploaded.changed
+
+#- debug: msg="{{ansible_local}}"

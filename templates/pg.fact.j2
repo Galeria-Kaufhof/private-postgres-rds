@@ -1,0 +1,60 @@
+#!/usr/bin/env python2
+"""
+Ansible custom facts about a postgres node:
+"""
+import os
+import subprocess
+import json
+
+class State:
+    NOT_REACHABLE = 'NOT_REACHABLE'     # stop the inventory due insufficient data
+    CONFIGURED_SLAVE = 'CONFIGURED_SLAVE'  # recovery.conf is present
+    CONFIGURED_MASTER = 'CONFIGURED_MASTER' # no recovery.conf but postgresql.conf
+    EMPTY_DATA_DIR = 'EMPTY_DATA_DIR'
+    DEACTIVATED = 'DEACTIVATED'       # e.g. after rolling upgrade, but the VM not deleted yet
+    NOT_INITIALIZED = 'NOT_INITIALIZED'   # postgres is not installed yet
+    UNKNOWN = None
+    # NOT_REACHABLE = 1     # stop the inventory due insufficient data
+    # CONFIGURED_SLAVE = 2  # recovery.conf is present
+    # CONFIGURED_MASTER = 3 # no recovery.conf but postgresql.conf
+    # EMPTY_DATA_DIR = 4
+    # DEACTIVATED = 5       # e.g. after rolling upgrade, but the VM not deleted yet
+    # NOT_INITIALIZED = 6   # postgres is not installed yet
+    # UNKNOWN = None
+
+def detect_state():
+    status = 0
+    lsres = ""
+    try:
+        lsres = subprocess.check_output(['ls', '-1','{{pg_data_dir}}'])
+    except CalledProcessError as ex:
+        status = ex.returncode
+        lsres = ex.output
+    # print(status, lsres)
+    files = [f.strip() for f in lsres.split("\n")]
+    # print(files, ('postgresql.conf' in files))
+    if 'postgresql.conf.deactivated' in files:
+        return State.DEACTIVATED
+    elif 'recovery.conf' in files:
+        return State.CONFIGURED_SLAVE
+    elif 'postgresql.conf' in files:
+        return State.CONFIGURED_MASTER
+    elif status == 2:
+        try:
+            lsres = subprocess.check_output(['ls', '-1', '{{pg_rpm_install_bin_dir}}'])
+        except CalledProcessError as ex:
+            status = ex.returncode
+            lsres = ex.output
+        if status == 2:
+            return State.NOT_INITIALIZED
+        else:
+            return State.EMPTY_DATA_DIR
+    elif status == 0:
+        return State.EMPTY_DATA_DIR
+
+if __name__ == '__main__':
+    from sys import argv
+    if (len(argv) > 1) and ('-s' in argv[1]):
+        print detect_state()
+    else:
+        print json.dumps({"state": "{0}".format(detect_state())})
