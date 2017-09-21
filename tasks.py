@@ -111,11 +111,11 @@ def backup_bucket_name(zone, db_instance_name):
     "target-time": """support for point in time recovery. Leave empty for latest or provide
     in format like '2017-03-22 15:50:12' Think about proper time zone. Our servers e.g. use UTC."""
     })
-def restore_cluster(ctx, zone, db_instance, from_zone=None, from_db_instance=None, backup_folder=None, target_time=None):
+def restore_cluster(ctx, zone, db_instance, incremental_backup, from_zone=None, from_db_instance=None, backup_folder=None, target_time=None):
     """Configure and restore cluster from existing backup. Supports point-in-time recovery.
 
-    invoke restore_cluster <zone> <db-instance>
-    invoke restore_cluster <zone> <db-instance> --backup-folder='2017-03-22_10-27-58.928456401'
+    invoke restore_cluster <zone> <db-instance> on
+    invoke restore_cluster <zone> <db-instance> on --backup-folder='2017-03-22_10-27-58.928456401'
     """
 
     if from_zone == None:
@@ -139,7 +139,7 @@ def restore_cluster(ctx, zone, db_instance, from_zone=None, from_db_instance=Non
         if target_time:
             more_vars['recovery_target_time'] = '"{}"'.format(target_time) # need quoting due to space char
 
-        ctx.run(init_pg_servers_play_run(zone, db_instance, more_vars=more_vars), pty=True, echo=True)
+        ctx.run(init_pg_servers_play_run(zone, db_instance, incremental_backup, more_vars=more_vars), pty=True, echo=True)
 
 @task(help={'db-instance-name': "short name describing the instance"})
 def initialize_servers(ctx, zone, db_instance_name):
