@@ -14,6 +14,7 @@ from __future__ import print_function
 from multiprocessing import Pool
 from novaclient import client
 from os import path
+import os_client_config
 import json
 import logging
 import os
@@ -43,7 +44,12 @@ def get_env(key):
         raise ValueError("You need to provide {} env var for the dynamic inventory to work".format(key))
 
 def login_to_nova():
-    return client.Client(
+    if 'OS_CLIENT_CONFIG_FILE' in os.environ:
+        openstack_config = os_client_config.config.OpenStackConfig()
+        return os_client_config.make_client('compute')
+        return client.Client(**openstack_config.get_one_cloud().get_auth_args())
+    else:
+        return client.Client(
             version=2,
             username=get_env('OS_USERNAME'),
             password=get_env('OS_PASSWORD'),
@@ -81,7 +87,8 @@ def detect_state(server):
 
 def detect_ip(nova_server):
     netw = dict(nova_server.networks)
-    del netw[u'private']
+    if u'private' in netw:
+        del netw[u'private']
     if len(netw) > 1:
         raise Exception("Too many networks for server '{}': {}".format(nova_server.name, netw))
     elif len(netw) == 0:
@@ -137,6 +144,8 @@ if "RDS_ALL_ZONES" in os.environ:
     print("IP              Flavor            Require Ver   State                Hostname")
     p = Pool(20)
     details = p.map(server_details, sorted(servers.keys()))
+    # Use for debugging (no parallelity):
+    # details = [server_details(key) for key in sorted(servers.keys())]
     print("\n".join(details))
     print("Note: information above can be inconsistent, if ansible playbook is running just at this moment.")
     sys.exit(0)
