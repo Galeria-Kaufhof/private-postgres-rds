@@ -269,14 +269,15 @@ if (master in deactivated) or (master in deactivate):
 
 res = {}
 res['aws_commands_host'] = ['localhost']
+res['postgres'] = servers.keys()
 if master:
-    res['master'] = [master]
+    res['postgres-MASTER'] = [master]
 if slaves:
-    res['slaves'] = slaves
+    res['postgres-SLAVES'] = slaves
 if deactivated:
-    res['deactivated'] = deactivated
+    res['postgres-DEACTIVATED'] = deactivated
 if deactivate:
-    res['deactivate'] = deactivate
+    res['postgres-DEACTIVATE'] = deactivate
 
 res['_meta'] = {}
 res['_meta']['hostvars'] = {
