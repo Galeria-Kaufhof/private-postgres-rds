@@ -62,7 +62,7 @@ def init_pg_servers_play_run(zone, db_instance_name, incremental_backup, more_va
     more = str_var_dict(more_vars)
     more_env = str_var_dict(more_env_vars)
     inventory = "configure/pg-cluster-inventory.py"
-    return "{aws_env} ZONE={zone} {more_env} DB_INSTANCE_NAME={db_instance_name} ansible-playbook configure/init_pg_servers.playbook.yaml --extra-vars='credentials_store={cred} zone={zone} db_instance_name={db_instance_name} incremental_backup={incremental_backup} {more}' -i {inventory} -vv".format(**locals())
+    return "{aws_env} ZONE={zone} {more_env} DB_INSTANCE_NAME={db_instance_name} ansible-playbook init_pg_servers.playbook.yaml --extra-vars='credentials_store={cred} zone={zone} db_instance_name={db_instance_name} incremental_backup={incremental_backup} {more}' -i {inventory} -vv".format(**locals())
 
 ARGS_HELP = {
         'zone': "The corresponding network zone",
