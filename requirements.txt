@@ -1,15 +1,17 @@
 # binary pre dependency: pg_config from pkg libpq-dev
 ansible>=2.2
-python-openstackclient==3.6.0
-shade==1.14
-sphinx==1.5.2
-sphinx_rtd_theme==0.1.9
-invoke==0.20.4
+invoke>=0.20.4
 behave
 psycopg2
 paramiko
 nose
+
+# for off site backup to AWS S3
 boto
 boto3
 botocore
 awscli
+
+# development dependencies
+sphinx==1.5.2
+sphinx_rtd_theme==0.1.9
