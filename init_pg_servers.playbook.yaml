@@ -9,11 +9,13 @@
     recovery_target_time: '' # provide value for point in time recovery, e.g. '2017-03-22 15:50:12'
   tasks:
     - debug: var=hostvars[inventory_hostname]["group_names"]
+    - set_fact: # remove DC dependent part, e.g. 10preprod0000 -> preprod0000
+        cred_zone: "{{ zone | regex_replace('^\\d+', '') }}"
     - set_fact:
         backup_bucket_name:  "backup--{{ postgres_service_domain }}"
         backup_user_name:    "backuper-{{ db_instance_name }}-{{ zone }}"
-        admin_password:      "{{ lookup('password', credentials_store + '/psql/' + zone + '/' + db_instance_name + '/admin_password chars=ascii_letters,digits') }}"
-        replicator_password: "{{ lookup('password', credentials_store + '/psql/' + zone + '/' + db_instance_name + '/replicator_password chars=ascii_letters,digits') }}"
+        admin_password:      "{{ lookup('password', credentials_store + '/psql/' + cred_zone + '/' + db_instance_name + '/admin_password chars=ascii_letters,digits') }}"
+        replicator_password: "{{ lookup('password', credentials_store + '/psql/' + cred_zone + '/' + db_instance_name + '/replicator_password chars=ascii_letters,digits') }}"
     - debug: var=hostvars[inventory_hostname]
 
 - name: Set up backup bucket
