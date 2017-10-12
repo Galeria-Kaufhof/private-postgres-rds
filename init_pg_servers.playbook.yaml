@@ -215,6 +215,8 @@
     - name: Register the host under service's name
       shell: "set-dns CNAME {{ postgres_service_domain }}  {{ inventory_hostname }}"
       when: "previous_master_host.stdout != inventory_hostname + '.'"
+      become: false
+      delegate_to: localhost
 
     - name: Ensure postgres master is started
       service: name=postgresql enabled=yes state=started
