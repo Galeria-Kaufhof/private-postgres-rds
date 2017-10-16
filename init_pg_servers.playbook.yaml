@@ -181,7 +181,7 @@
       cron:
         name: postgres full backup
         minute: "{{ 59 |random}}"
-        hour: "*/2"
+        hour: "3"
         user: postgres
         job: "/var/local/postgresql/full_backup_to_aws.sh >>/var/local/postgresql/log/backup.log 2>&1"
 
