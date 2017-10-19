@@ -4,6 +4,7 @@
 Ansible custom facts about a postgres node:
 """
 import os
+import re
 import subprocess
 import json
 from os import path
@@ -66,6 +67,14 @@ def get_size(start_path = '.'):
 def detect_size_mb(subdir):
     return get_size(path.join('{{ pg_data_dir }}/data', subdir))/1024/1024
 
+def run_sql(statement):
+    """Run an SQL statement returning single record and return results as tuple"""
+    out = subprocess.check_output("""sudo -iu postgres psql -t -c "{}" ; exit 0 """.format(statement), shell=True)
+    return [v.strip() for v in out.split("|")]
+
+def detect_wal_setting():
+    return run_sql("""SELECT setting FROM pg_settings WHERE name = 'wal_keep_segments';""")[0]
+
 if __name__ == '__main__':
     from sys import argv
     if (len(argv) > 1) and ('-s' in argv[1]):
@@ -75,4 +84,5 @@ if __name__ == '__main__':
             "state": "{0}".format(detect_state()),
             "mb_db": detect_size_mb("base"),
             "mb_xlog": detect_size_mb("pg_xlog"),
+            "wal_keep": detect_wal_setting(),
             })
