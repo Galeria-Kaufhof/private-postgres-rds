@@ -6,6 +6,7 @@ Ansible custom facts about a postgres node:
 import os
 import subprocess
 import json
+from os import path
 
 class State:
     NOT_REACHABLE = 'NOT_REACHABLE'     # stop the inventory due insufficient data
@@ -54,9 +55,24 @@ def detect_state():
     elif status == 0:
         return State.EMPTY_DATA_DIR
 
+def get_size(start_path = '.'):
+    total_size = 0
+    for dirpath, dirnames, filenames in os.walk(start_path):
+        for f in filenames:
+            fp = os.path.join(dirpath, f)
+            total_size += os.path.getsize(fp)
+    return total_size
+
+def detect_size_mb(subdir):
+    return get_size(path.join('{{ pg_data_dir }}/data', subdir))/1024/1024
+
 if __name__ == '__main__':
     from sys import argv
     if (len(argv) > 1) and ('-s' in argv[1]):
         print detect_state()
     else:
-        print json.dumps({"state": "{0}".format(detect_state())})
+        print json.dumps({
+            "state": "{0}".format(detect_state()),
+            "mb_db": detect_size_mb("base"),
+            "mb_xlog": detect_size_mb("pg_xlog"),
+            })
