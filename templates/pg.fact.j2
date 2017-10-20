@@ -75,14 +75,36 @@ def run_sql(statement):
 def detect_wal_setting():
     return run_sql("""SELECT setting FROM pg_settings WHERE name = 'wal_keep_segments';""")[0]
 
+def check_replication():
+    try:
+        delay, replay_timestamp, last_xlog, running_recovery = run_sql(
+            "select now()-pg_last_xact_replay_timestamp() as delay, pg_last_xact_replay_timestamp(), pg_last_xlog_receive_location(), pg_is_in_recovery();")
+        if delay == '':
+            delay = "lost track?"
+        if running_recovery == 't':
+            running = "slave/recovery"
+        elif running_recovery == 'f':
+            running = "master"
+            delay = "master"
+            last_xlog = run_sql("select pg_current_xlog_location();")[0]
+        else:
+            running = "unknown"
+        return (running, last_xlog, delay)
+    except:
+        return ("not-running", "error", "error")
+
 if __name__ == '__main__':
     from sys import argv
     if (len(argv) > 1) and ('-s' in argv[1]):
         print detect_state()
     else:
+        running, last_xlog, repl_delay = check_replication()
         print json.dumps({
             "state": "{0}".format(detect_state()),
             "mb_db": detect_size_mb("base"),
             "mb_xlog": detect_size_mb("pg_xlog"),
             "wal_keep": detect_wal_setting(),
+            "running": running,
+            "last_xlog": last_xlog,
+            "repl_delay": repl_delay,
             })
