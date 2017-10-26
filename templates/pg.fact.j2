@@ -96,6 +96,13 @@ def check_replication():
     except:
         return ("not-running", "error", "error")
 
+def detect_data_space_mb():
+    try:
+        stat = os.statvfs("/var/local/postgresql/data")
+        return stat.f_blocks * stat.f_bsize / 1024 / 1024
+    except:
+        return 1000 # default if undetected
+
 if __name__ == '__main__':
     from sys import argv
     if (len(argv) > 1) and ('-s' in argv[1]):
@@ -106,6 +113,7 @@ if __name__ == '__main__':
             "state": "{0}".format(detect_state()),
             "mb_db": detect_size_mb("base"),
             "mb_xlog": detect_size_mb("pg_xlog"),
+            "mb_data_space": detect_data_space_mb(),
             "wal_keep": detect_wal_setting(),
             "running": running,
             "last_xlog": last_xlog,
