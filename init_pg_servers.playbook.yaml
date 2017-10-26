@@ -195,7 +195,7 @@
         state: absent
         timeout: 2592000 # 30 days = almost forever
     - name: Initial full backup
-      shell: "/var/local/postgresql/full_backup_to_aws.sh"
+      shell: "/var/local/postgresql/full_backup_to_aws.sh &"
       become: true
       become_user: postgres
 
