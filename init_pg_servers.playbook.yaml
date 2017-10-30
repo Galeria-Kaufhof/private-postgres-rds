@@ -140,7 +140,6 @@
         - Restart postgres
         - Initial full backup
 
-    - debug: var=hostvars
     - debug: var=ansible_local.pg
 
     # For all cases: new master, just promoted to master or an old existing master
