@@ -202,6 +202,7 @@
       async: 2592000 # 30 days = almost forever
       become: true
       become_user: postgres
+      when: False # deactivate initial full backup for faster setup
 
 
 - name: Register postgres master
