@@ -273,6 +273,8 @@
       # Note: you can remove `--checkpoint=fast` from the following pg_basebackup
       # call to reduce (spread) load on master during replication.
       # Replication will take longer then.
+      #
+      # Possible extension: use --max-rate to throttle replication, e.g. `--max-rate 20000` for 20 MB/s
       shell: PGPASSFILE=/var/local/postgresql/replicator-pgpass.conf pg_basebackup -D /var/local/postgresql/data/ -h {{ slave_upstream }} -U replicator --progress -R -w --xlog-method=stream --checkpoint=fast
       become_user: postgres
       become: true
