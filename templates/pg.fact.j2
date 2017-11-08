@@ -94,7 +94,7 @@ def check_replication():
             running = "unknown"
         return (running, last_xlog, delay)
     except:
-        return ("not-running", "error", "error")
+        return ("not-running", "no connection", "no connection")
 
 def detect_data_space_mb():
     try:
