@@ -54,7 +54,7 @@
         verbosity: 3
 
     - name: Wait for backup user created and available
-      shell: sleep 10 # unfornately there is no iam_facts module available,
+      shell: sleep 7 # unfortunately there is no iam_facts module available,
         # which we could use to check/wait for user;
         # another possibility: `aws iam get-user --user-name ...` in a loop
 
@@ -62,7 +62,7 @@
       s3_bucket:
         name: "{{ backup_bucket_name }}"
         policy: "{{ lookup('template', 'backup_bucket_policy.json.j2') }}"
-        versioning: true # to enable trash bin
+        versioning: false # no trash bin needed
       register: backup_bucket
 
     - debug: var=backup_bucket
