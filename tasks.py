@@ -153,3 +153,13 @@ def initialize_servers(ctx, zone, db_instance_name):
 def info_list(ctx):
     '''List all postgres related openstack VM instances.'''
     ctx.run("RDS_ALL_ZONES=true configure/pg-cluster-inventory.py")
+
+@task
+def test(ctx, test_inventory=None):
+    '''Run functional tests against a test cluster. Create vagrant test cluster if needed.'''
+    with ctx.cd('test'):
+        if test_inventory == None: # use vagrant
+            ctx.run("vagrant status")
+        else:
+            pass # TODO
+
