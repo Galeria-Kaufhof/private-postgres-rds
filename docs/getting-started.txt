@@ -67,6 +67,10 @@ servers::
   # Create project specific python virtual environment in a subfolder
   invoke --help sync_virtualenv
 
+To run tests locally vagrant-libvirt is used - follow `installation instructions`_
+
+.. _installation instructions: https://github.com/vagrant-libvirt/vagrant-libvirt#installation
+
 3. Install postgres on every server
 -----------------------------------
 
