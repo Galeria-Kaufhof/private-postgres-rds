@@ -1,0 +1,47 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+VAGRANTFILE_API_VERSION = "2"
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+  # config.vm.box = "ubuntu/xenial64"
+  config.vm.box = "generic/ubuntu1604"
+  if Vagrant.has_plugin?("vagrant-cachier")
+    config.cache.scope = :machine
+    config.cache.enable :gem
+  else
+    puts "Please run: vagrant plugin install vagrant-cachier"
+  end
+
+  # config.hostsupdater.remove_on_suspend = false
+
+  #config.vm.synced_folder "..", "/vagrant"
+  vagrant_root = File.dirname(__FILE__)
+  ENV['ANSIBLE_ROLES_PATH'] = "#{vagrant_root}/../.."
+
+  # VM configuration for Pg nodes
+  config.vm.define :pg02 do |kconfig|
+    kconfig.vm.hostname = 'pg02.vagrant'
+    kconfig.vm.provider "virtualbox" do |vb|
+      vb.customize ["modifyvm", :id, "--name", "pg02.vagrant", "--memory", "1024", "--cpus", "2", "--ioapic", "on"]
+    end
+    kconfig.vm.network "private_network", ip: "192.168.121.102"
+  end
+  config.vm.define :pg01 do |kconfig|
+    kconfig.vm.hostname = "pg01.vagrant"
+    kconfig.vm.provider "virtualbox" do |vb|
+      vb.customize ["modifyvm", :id, "--name", "pg01.vagrant", "--memory", "1024", "--cpus", "2", "--ioapic", "on"]
+    end
+    kconfig.vm.network "private_network", ip: "192.168.121.101"
+    kconfig.vm.network "forwarded_port", guest: 5432, host: 15432
+    kconfig.vm.provision "ansible" do |ansible|
+      ansible.playbook = "init-test-servers.yml"
+      ansible.inventory_path = "vagrant_servers"
+      ansible.verbose = "vv"
+      ansible.limit = "postgres"
+      ansible.skip_tags = []
+      ansible.extra_vars = {remote_user: "vagrant"}
+    end
+  end
+
+end

@@ -1,0 +1,21 @@
+---
+- name: Prepare servers for ansible
+  hosts: all
+  gather_facts: false
+  become: True
+  pre_tasks:
+    - name: Install missing python 2 in xenial
+      raw: test -e /usr/bin/python || (apt -y update && apt install -y python-minimal)
+      register: output
+      changed_when: output.stdout != ""
+
+
+- name: Postgres software setup
+  hosts: all
+  remote_user: vagrant
+  become: True
+  pre_tasks:
+    - name: copy hosts file for cross-VM communication
+      copy: src=hosts dest=/etc/hosts
+  roles:
+    - {role: private-postgres-rds, tags: 'postgresql'}

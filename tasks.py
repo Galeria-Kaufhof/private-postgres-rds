@@ -155,9 +155,12 @@ def info_list(ctx):
     ctx.run("RDS_ALL_ZONES=true configure/pg-cluster-inventory.py")
 
 @task
-def test_create_vagrant_cluster(ctx, recreate=None):
+def test_create_vagrant_cluster(ctx, recreate=False):
     '''Create a local vagrant-libvirt cluster. --recreate enforces deletion of existing
     Prerequisites: vagrant-libvirt https://github.com/vagrant-libvirt/vagrant-libvirt#installation'''
+    if recreate:
+        ctx.run("vagrant destroy --force", pty=True)
+    ctx.run("vagrant up --provider=libvirt", pty=True)
 
 @task
 def test(ctx, test_inventory=None):

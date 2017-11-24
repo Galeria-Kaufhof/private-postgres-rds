@@ -1,0 +1,11 @@
+#managed by Ansible, for Vagrant only
+127.0.0.1	localhost
+255.255.255.255	broadcasthost
+::1             localhost
+fe80::1%lo0	localhost
+
+# VIP
+192.168.121.100  pg.vagrant pg
+# Replication Cluster Nodes
+192.168.121.101  pg01.vagrant pg01
+192.168.121.102  pg02.vagrant pg02

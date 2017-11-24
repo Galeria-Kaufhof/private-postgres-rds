@@ -3,3 +3,4 @@ organization_conf.py
 pyenv
 *.playbook.retry
 docs/_build
+.vagrant

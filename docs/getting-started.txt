@@ -71,6 +71,10 @@ To run tests locally vagrant-libvirt is used - follow `installation instructions
 
 .. _installation instructions: https://github.com/vagrant-libvirt/vagrant-libvirt#installation
 
+For faster vagrant operations, use caching::
+
+  vagrant plugin install vagrant-cachier
+
 3. Install postgres on every server
 -----------------------------------
 
