@@ -8,7 +8,8 @@ import sys
 from invoke import task
 from os import path
 
-sys.path.insert(0, path.abspath(path.join(__file__, '../lib')))
+rds_path = path.dirname(path.abspath(__file__))
+sys.path.insert(0, path.join(rds_path, 'lib'))
 from conf import OrganizationConf, get_env
 
 @task
@@ -158,14 +159,15 @@ def info_list(ctx):
 def test_create_vagrant_cluster(ctx, recreate=False):
     '''Create a local vagrant-libvirt cluster. --recreate enforces deletion of existing
     Prerequisites: vagrant-libvirt https://github.com/vagrant-libvirt/vagrant-libvirt#installation'''
-    if recreate:
-        ctx.run("vagrant destroy --force", pty=True)
-    ctx.run("vagrant up --provider=libvirt", pty=True)
+    with ctx.cd(path.join(rds_path, 'test')):
+        if recreate:
+            ctx.run("vagrant destroy --force", pty=True)
+        ctx.run("vagrant up --provider=libvirt --provision", pty=True)
 
 @task
 def test(ctx, test_inventory=None):
     '''Run functional tests against a test cluster. Create vagrant test cluster if needed.'''
-    with ctx.cd('test'):
+    with ctx.cd(path.join(rds_path, 'test')):
         if test_inventory == None: # use vagrant
             ctx.run("vagrant status")
         else:
