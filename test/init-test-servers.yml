@@ -1,6 +1,6 @@
 ---
 - name: Prepare servers for ansible
-  hosts: all
+  hosts: postgres
   gather_facts: false
   become: True
   pre_tasks:
@@ -10,12 +10,20 @@
       changed_when: output.stdout != ""
 
 
-- name: Postgres software setup
-  hosts: all
+- name: Test env postgres software setup
+  hosts: postgres
   remote_user: vagrant
   become: True
+  vars:
+    postgres_version: "9.6.4-1"
   pre_tasks:
     - name: copy hosts file for cross-VM communication
       copy: src=hosts dest=/etc/hosts
   roles:
-    - {role: private-postgres-rds, tags: 'postgresql'}
+    - {role: private-postgres-rds, tags: 'postgresql'} # to register handlers etc.
+  tasks:
+    - name: Install postgres software
+      include_role:
+        name: private-postgres-rds
+        tasks_from: install_binary
+
