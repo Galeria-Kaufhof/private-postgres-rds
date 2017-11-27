@@ -1,6 +1,6 @@
 ---
 - name: Check if data folder exists
-  stat: path=/var/local/postgresql/data
+  stat: path={{ postgres_var_dir }}/data
   register: data_folder
 
 # skip whole execution if postgres is already configured and running, i.e. data folder exists
@@ -30,6 +30,7 @@
 - name: List installed postgres tools
   shell: ls -1 /usr/local/pgsql/bin/
   when: data_folder.stat.exists == False
+  changed_when: false
   register: pgtools_list
 
 - name: Create symbolic links for postgres tools
@@ -55,14 +56,14 @@
   when: data_folder.stat.exists == False
 
 - name: Create postgres data folder
-  file: state=directory dest=/var/local/postgresql owner=postgres group=postgres mode=700
+  file: state=directory dest={{ postgres_var_dir }} owner=postgres group=postgres mode=700
   when: data_folder.stat.exists == False
 
 - name: "Reboot if required"
-  shell: sleep 2 && shutdown -r now 'Reboot required' removes=/var/run/reboot-required
+  shell: sleep 2 && shutdown -r now 'Reboot required'
+  args:
+    removes: /var/run/reboot-required
   become: true
-  async: 1
-  poll: 0
   ignore_errors: true
   when: data_folder.stat.exists == False
 
