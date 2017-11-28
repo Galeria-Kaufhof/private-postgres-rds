@@ -1,6 +1,8 @@
 [postgres]
 192.168.121.101 ansible_ssh_private_key_file=.vagrant/machines/pg01/libvirt/private_key node=001
 192.168.121.102 ansible_ssh_private_key_file=.vagrant/machines/pg02/libvirt/private_key node=002
+192.168.121.103 ansible_ssh_private_key_file=.vagrant/machines/pg03/libvirt/private_key node=003
+192.168.121.104 ansible_ssh_private_key_file=.vagrant/machines/pg04/libvirt/private_key node=004
 
 [postgres:vars]
 layer='postgresql'
