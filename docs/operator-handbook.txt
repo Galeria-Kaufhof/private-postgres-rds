@@ -143,7 +143,7 @@ Maybe the developers put their tables inside schemas?
 How do I get an overview, which servers already installed, which is master and which is slave etc.
 --------------------------------------------------------------------------------------------------
 
-``invoke info_list``
+``invoke info-list``
 
 Example output::
 
