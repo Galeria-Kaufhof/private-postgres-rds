@@ -108,7 +108,7 @@ again.
 openstack. Or ensure it is really deactivated by renaming
 /var/local/postgresql/data/postgresql.conf to postgresql.conf.deactivated
 
-2. Run `invoke configure_cluster ...` It will automatically promote the
+2. Run `invoke configure-cluster ...` It will automatically promote the
 existing hot-standby slave to master and register it under the service url.
 
 3. Build addional slaves if needed: add VM, configure cluster as described
