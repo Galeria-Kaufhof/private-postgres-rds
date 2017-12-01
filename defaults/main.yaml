@@ -1,3 +1,7 @@
 # You can provide your own installation source, like a mirrored tar.gz in your Nexus, FTP server or Artifactory
-installation_source: "https://get.enterprisedb.com/postgresql/postgresql-9.6.6-1-linux-x64-binaries.tar.gz"
+binary_repo: "https://get.enterprisedb.com/postgresql/"
+postgres_version: "9.6.6"
+postgres_binary_name: "postgresql-{{ postgres_version }}-1-linux-x64-binaries.tar.gz"
+
+installation_source: "{{ binary_repo }}{{ postgres_binary_name }}"
 postgres_var_dir: /var/local/postgresql
