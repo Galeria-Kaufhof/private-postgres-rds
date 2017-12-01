@@ -4,24 +4,32 @@ import unittest
 from conf import OrganizationConf
 
 class ClusterUnderTest:
-    """Settings for the cluster under test to use in connection strings etc."""
+    """Settings for the cluster under test to use in connection strings etc.
+    This implementation of settings for a cluster under test is for local vagrant tests only.
+    If you want to test with your real, e.g. OpenStack environment, inherit from this class
+    and provide your own implementation for defining/storing credentials, like
+    in Hashicorp's Vault, or your local git repository.
+    """
     zone = OrganizationConf.test_zone()
     db_instance_name = 'test'
 
-    INITIAL_MASTER = OrganizationConf.server_name(zone, db_instance_name, 1)
-    INITIAL_SLAVE  = OrganizationConf.server_name(zone, db_instance_name, 2)
-    SERVER3 = OrganizationConf.server_name(zone, db_instance_name, 3)
-    SERVER4 = OrganizationConf.server_name(zone, db_instance_name, 4)
+    INITIAL_MASTER = "192.168.121.101"
+    INITIAL_SLAVE  = "192.168.121.102"
+    SERVER3 = "192.168.121.103"
+    SERVER4 = "192.168.121.104"
     service_url = OrganizationConf.service_url(zone, db_instance_name)
-    credentials_folder = "../postgres-credentials"
-    admin_password = open("{folder}/psql/{zone}/{name}/admin_password".format(
-        folder=credentials_folder, zone=zone, name=db_instance_name)).read().strip()
-    backuper_aws_credentials = \
-            "{folder}/backup/backuper-{name}-{zone}.credentials.sh".format(
-                    folder=credentials_folder, zone=zone, name=db_instance_name)
-    backup_configurer_aws_credentials = \
-            "{folder}/backup/dev/configurer.credentials.sh".format(
-                    folder=credentials_folder, zone=zone, name=db_instance_name)
+    credentials_folder = "test-credentials"
+    admin_password = "Baequahci6la"
+#~    admin_password = open("{folder}/psql/{zone}/{name}/admin_password".format(
+#~        folder=credentials_folder, zone=zone, name=db_instance_name)).read().strip()
+#~    admin_password = open("{folder}/admin_password".format(
+#~        folder=credentials_folder, name=db_instance_name)).read().strip()
+#~    backuper_aws_credentials = \
+#~            "{folder}/backup/backuper-{name}-{zone}.credentials.sh".format(
+#~                    folder=credentials_folder, zone=zone, name=db_instance_name)
+#~    backup_configurer_aws_credentials = \
+#~            "{folder}/backup/dev/configurer.credentials.sh".format(
+#~                    folder=credentials_folder, zone=zone, name=db_instance_name)
 
     @classmethod
     def resolve_service_url(cls):

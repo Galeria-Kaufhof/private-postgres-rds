@@ -169,7 +169,9 @@ def test(ctx, test_inventory=None):
     '''Run functional tests against a test cluster. Create vagrant test cluster if needed.'''
     with ctx.cd(path.join(rds_path, 'test')):
         if test_inventory == None: # use vagrant
-            ctx.run("vagrant status")
+            # ctx.run("vagrant status")
+            pass
         else:
             pass # TODO
+        ctx.run("behave features/switchover.feature")
 

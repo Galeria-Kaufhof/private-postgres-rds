@@ -8,7 +8,10 @@ import time
 from datetime import datetime
 from behave import *
 from cluster_under_test import *
-from tasks import init_pg_servers_play_run
+
+import sys
+print("-----------", "\n".join(sys.path), "------------")
+
 from execution import run_remotely
 
 def run_ansible(context, more_vars=None):
@@ -19,8 +22,8 @@ def run_ansible(context, more_vars=None):
 
     in a separate terminal to observe ansible progress.
     """
-    cmd = init_pg_servers_play_run(ClusterUnderTest.zone,
-           ClusterUnderTest.db_instance_name, more_vars)
+    inventory = "vagrant_servers"
+    cmd = "ansible-playbook playbooks/smaple_configure_cluster.yaml -i {inventory} -vv".format(**locals())
     run_with_details(cmd)
 
 def run_with_details(cmd):
@@ -30,7 +33,7 @@ def run_with_details(cmd):
     tail -f /tmp/detailed-test-output.txt
 
     in a separate terminal to observe progress.
- 
+
     """
     logging.info(cmd)
     check_call("""script -e -f -q /tmp/detailed-test-output.txt -c "{}" """.format(cmd),
@@ -91,7 +94,7 @@ def host_for_node_name(node):
 
 @when(u'I halt and wipe out the {node}') # master|slave supported
 def wipe_out(context, node):
-    run_remotely(host=host_for_node_name(node), command=wipe_out_command)
+    run_remotely(host=host_for_node_name(node), command=wipe_out_command, user="vagrant")
 
 @given(u'a fresh postgres cluster')
 def create_fresh_cluster(context):
