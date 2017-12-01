@@ -8,6 +8,9 @@ import time
 from datetime import datetime
 from behave import *
 from cluster_under_test import *
+from os import path
+
+project_path = path.dirname(path.dirname(path.dirname(path.dirname(path.abspath(__file__)))))
 
 import sys
 # print("-----------", "\n".join(sys.path), "------------")
@@ -27,8 +30,9 @@ def run_playbook(context, more_vars=None):
 
     in a separate terminal to observe ansible progress.
     """
-    inventory = "vagrant_servers"
-    cmd = "ansible-playbook playbooks/sample_configure_cluster.yaml -i {inventory} -vv".format(**locals())
+    inventory = path.join(project_path, "test/vagrant_servers")
+    playbook = path.join(project_path, "playbooks/sample_configure_cluster.yaml")
+    cmd = "ansible-playbook {playbook} -i {inventory} -vv".format(**locals())
     run_with_details(cmd)
 
 def run_with_details(cmd):
