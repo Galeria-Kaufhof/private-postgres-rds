@@ -10,11 +10,16 @@ from behave import *
 from cluster_under_test import *
 
 import sys
-print("-----------", "\n".join(sys.path), "------------")
+# print("-----------", "\n".join(sys.path), "------------")
 
-from execution import run_remotely
+def run_on_host(host, command, timeout=None):
+    extra = ""
+    if timeout:
+        extra += "-B {}".format(timeout)
+    cmd = "ansible -i vagrant_servers --limit {host} postgres {extra} --become -m shell -a '{command}'".format(**locals())
+    run_with_details(cmd)
 
-def run_ansible(context, more_vars=None):
+def run_playbook(context, more_vars=None):
     """Run ansible playbook for provided inventory file and redirect output
     including colors to a separate file. Run
 
@@ -23,7 +28,7 @@ def run_ansible(context, more_vars=None):
     in a separate terminal to observe ansible progress.
     """
     inventory = "vagrant_servers"
-    cmd = "ansible-playbook playbooks/smaple_configure_cluster.yaml -i {inventory} -vv".format(**locals())
+    cmd = "ansible-playbook playbooks/sample_configure_cluster.yaml -i {inventory} -vv".format(**locals())
     run_with_details(cmd)
 
 def run_with_details(cmd):
@@ -36,12 +41,16 @@ def run_with_details(cmd):
 
     """
     logging.info(cmd)
-    check_call("""script -e -f -q /tmp/detailed-test-output.txt -c "{}" """.format(cmd),
-            shell=True, stdout=open(os.devnull, 'w'))
+    try:
+        check_call("""script -e -f -q /tmp/detailed-test-output.txt -c "{}" """.format(cmd),
+                shell=True, stdout=open(os.devnull, 'w'))
+    except subprocess.CalledProcessError:
+        logging.warn(open("/tmp/detailed-test-output.txt").read())
+        raise
 
 @when(u'I initialize postgres cluster to {goal}')
 def init_pg_servers(context, goal):
-    run_ansible(context)
+    run_playbook(context)
 
 @when(u'I restore backup to a postgres cluster')
 def step_impl(context):
@@ -49,7 +58,7 @@ def step_impl(context):
 
 @when(u'I run full backup')
 def step_impl(context):
-    run_remotely(host=ClusterUnderTest.INITIAL_MASTER, timeout=2592000, # wait forever
+    run_on_host(host=ClusterUnderTest.INITIAL_MASTER, timeout=2592000, # wait forever
             command="sudo -u postgres /var/local/postgresql/full_backup_to_aws.sh >>/var/local/postgresql/log/backup.log 2>&1")
 
 @when(u'I restore backup to a postgres cluster with remembered PIT')
@@ -94,7 +103,7 @@ def host_for_node_name(node):
 
 @when(u'I halt and wipe out the {node}') # master|slave supported
 def wipe_out(context, node):
-    run_remotely(host=host_for_node_name(node), command=wipe_out_command, user="vagrant")
+    run_on_host(host=host_for_node_name(node), command=wipe_out_command)
 
 @given(u'a fresh postgres cluster')
 def create_fresh_cluster(context):
@@ -123,14 +132,14 @@ def step_impl(context, number, goal):
 
 @when(u'I reboot the {node}')
 def step_impl(context, node):
-    run_remotely(host=host_for_node_name(node), command="reboot")
+    run_on_host(host=host_for_node_name(node), command="reboot")
 
 @when('I wait for {node} to finish reboot')
 def step_impl(context, node):
     start = time.time()
     while time.time() - start < 120:
         try:
-            run_remotely(host=host_for_node_name(node), timeout=10, command="uptime")
+            run_on_host(host=host_for_node_name(node), timeout=10, command="uptime")
             break
         except Exception:
             pass # ignore and retry

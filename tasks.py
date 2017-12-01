@@ -173,5 +173,5 @@ def test(ctx, test_inventory=None):
             pass
         else:
             pass # TODO
-        ctx.run("behave features/switchover.feature")
+        ctx.run("behave features/switchover.feature", pty=True)
 
