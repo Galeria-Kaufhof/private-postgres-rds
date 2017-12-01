@@ -6,14 +6,23 @@ VAGRANTFILE_API_VERSION = "2"
 def define_pg_vm(config, n)
   # VM configuration for postgres nodes
   name = "pg0#{n}"
+  ip = "192.168.121.10#{n}"
   config.vm.define name do |kconfig|
     kconfig.vm.hostname = "#{name}.vagrant"
     kconfig.vm.provider "virtualbox" do |vb|
       vb.customize ["modifyvm", :id, "--name", kconfig.vm.hostname,
                     "--memory", "1024", "--cpus", "2", "--ioapic", "on"]
     end
-    kconfig.vm.network "private_network", ip: "192.168.121.10#{n}"
+    kconfig.vm.network "private_network", ip: ip
     yield kconfig if block_given?
+    kconfig.vm.provision "ansible" do |ansible|
+      ansible.playbook = "init-test-servers.yml"
+      ansible.inventory_path = "vagrant_servers"
+      ansible.verbose = "vv"
+      ansible.limit = ip
+      ansible.skip_tags = []
+      ansible.extra_vars = {remote_user: "vagrant"}
+    end
   end
 end
 
@@ -38,13 +47,5 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   define_pg_vm config, 4
   define_pg_vm config, 1 do |kconfig|
     kconfig.vm.network "forwarded_port", guest: 5432, host: 15432
-    kconfig.vm.provision "ansible" do |ansible|
-      ansible.playbook = "init-test-servers.yml"
-      ansible.inventory_path = "vagrant_servers"
-      ansible.verbose = "vv"
-      ansible.limit = "postgres"
-      ansible.skip_tags = []
-      ansible.extra_vars = {remote_user: "vagrant"}
-    end
   end
 end
