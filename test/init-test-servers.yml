@@ -15,7 +15,7 @@
   remote_user: vagrant
   become: True
   vars:
-    postgres_version: "9.6.4-1"
+    postgres_version: "9.6.6"
   pre_tasks:
     - name: copy hosts file for cross-VM communication
       copy: src=hosts dest=/etc/hosts
@@ -26,4 +26,8 @@
       include_role:
         name: private-postgres-rds
         tasks_from: install_binary
+    - name: Setup custom postgres facts
+      include_role:
+        name: private-postgres-rds
+        tasks_from: custom_facts
 

@@ -46,8 +46,10 @@ def run_with_details(cmd):
     """
     logging.info(cmd)
     try:
+        env = dict(os.environ)
+        env['ANSIBLE_ROLES_PATH'] = path.dirname(project_path)
         check_call("""script -e -f -q /tmp/detailed-test-output.txt -c "{}" """.format(cmd),
-                shell=True, stdout=open(os.devnull, 'w'))
+                shell=True, stdout=open(os.devnull, 'w'), env=env)
     except subprocess.CalledProcessError:
         logging.warn(open("/tmp/detailed-test-output.txt").read())
         raise

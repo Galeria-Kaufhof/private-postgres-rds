@@ -1,26 +1,45 @@
 # Decide: reuse through import-playbook or (fine granular) by referring to single task-lists
+---
+- name: First, setup the master
+  include: setup_master.yaml
 
-tasks:
-  generate-or-load-postgres-credentials
-
-include_role:
-  tasks_from: init_settings.yaml
-include_role:
-  tasks_from: build_groups.yaml
-include_role:
-  tasks_from: deactivate_servers.yaml
-# prepare admin-, replicator- passwords
-include_role:
-  tasks_from: setup_master.yaml
-include_role:
-  tasks_from: register_master_in_dns # highly specific
-include_role:
-  tasks_from: create_postgres_users
-include_role:
-  tasks_from: setup_slaves
-include_role:
-  tasks_from: register_slaves_as_readonly # new, for BSNA
-
-hosts: aws_commands_host
-include_role:
-  tasks_from: setup_offsite_backup # specific
+  #- name: Detect configured master node(s) and build appropriate host-groups
+  #  hosts: postgres
+  #  remote_user: root
+  #  become: True
+  #  tasks:
+  #    # generate-or-load-postgres-credentials
+  #    #~    - include_role:
+  #    #~        name: private-postgres-rds
+  #    #~        tasks_from: init_settings.yaml
+  #    - include_role:
+  #        name: private-postgres-rds
+  #        tasks_from: build_groups.yaml
+  #    - debug: var=hostvars
+  #    - include_role:
+  #        name: private-postgres-rds
+  #        tasks_from: deactivate_servers.yaml
+  #    # prepare admin-, replicator- passwords
+  #    - include_role:
+  #        name: private-postgres-rds
+  #        tasks_from: setup_master.yaml
+  #    - include_role:
+  #        name: private-postgres-rds
+  #        tasks_from: register_master_in_dns # highly specific
+  #    - include_role:
+  #        name: private-postgres-rds
+  #        tasks_from: create_postgres_users
+  #    - include_role:
+  #        name: private-postgres-rds
+  #        tasks_from: setup_slaves
+  #    - include_role:
+  #        name: private-postgres-rds
+  #        tasks_from: register_slaves_as_readonly # new, for BSNA
+  #
+  #- name: Set up off site backup to AWS
+  #  hosts: aws_commands_host
+  #  tasks:
+  #    - include_role:
+  #        name: private-postgres-rds
+  #        tasks_from: setup_offsite_backup # specific
+  #
