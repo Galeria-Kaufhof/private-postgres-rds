@@ -2,6 +2,9 @@ import logging
 import subprocess
 import unittest
 from conf import OrganizationConf
+import os
+from os import path
+project_path = path.dirname(path.dirname(path.abspath(__file__)))
 
 class ClusterUnderTest:
     """Settings for the cluster under test to use in connection strings etc.
@@ -32,15 +35,35 @@ class ClusterUnderTest:
 #~                    folder=credentials_folder, zone=zone, name=db_instance_name)
 
     @classmethod
+    def service_url_filename(cls):
+        return "{}/test/state/postgres-service-endpoint.txt".format(project_path)
+
+    @classmethod
+    def readonly_service_url_filename(cls):
+        return "{}/test/state/readonly-postgres-service-endpoint.txt".format(project_path)
+
+    @classmethod
+    def remove_file_safe(cls, path_to_del):
+        if os.path.exists(path_to_del):
+            os.remove(path_to_del)
+
+    @classmethod
+    def clean_service_urls(cls):
+        cls.remove_file_safe(cls.service_url_filename())
+        cls.remove_file_safe(cls.readonly_service_url_filename())
+
+    @classmethod
     def resolve_service_url(cls):
-        # TODO Detect authorative DNS server
-        # TODO Use expicit DNS server names only when running from developer comp,
-        # on jenkins use default resolver - should still work
-        logging.debug("----- reresolving -----")
-        resolved = subprocess.check_output("dig +short {} {}".format(
-            OrganizationConf.dns_authority(), ClusterUnderTest.service_url), shell=True)
-        logging.debug("resolved: " + resolved)
-        return resolved.split()[0][0:-1] # first line in dig output is host name with trailing '.'
+        # In vagrant test environment we use a simple text file to store the
+        # current master or a list of read-only instances.
+        # Possible extension: add a server with BIND installation to vagrant
+        # and update service url via dynamic DNS or use consul to register the
+        # service url.
+        try:
+            resolved = open(cls.service_url_filename()).read().strip()
+            return resolved
+        except IOError as ex:
+            raise Exception("No server registered under service_url")
 
 t = unittest.TestCase('__init__') # just use for assertions
 

@@ -113,6 +113,7 @@ def wipe_out(context, node):
 
 @given(u'a fresh postgres cluster')
 def create_fresh_cluster(context):
+    ClusterUnderTest.clean_service_urls()
     empty_servers(context, "master and slaves")
     init_pg_servers(context, "get new cluster")
     context.dbt.recreate_tables()
