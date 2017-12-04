@@ -47,6 +47,7 @@ def detect_state():
     elif 'postgresql.conf' in files:
         return State.CONFIGURED_MASTER
     elif status == 2:
+        status = 0
         try:
             lsres = subprocess.check_output(['ls', '-1', PG_VAR_DIR])
         except subprocess.CalledProcessError as ex:
