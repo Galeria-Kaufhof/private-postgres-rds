@@ -60,6 +60,8 @@
 
 - name: There are no configured masters yet
   block:
+  - name: Assert expecting ready servers mit EMPTY_DATA_DIR in this case
+    assert: { that: "'postgres-EMPTY_DATA_DIR' in groups", msg: "There are no configured masters yet. Expecting ready servers mit EMPTY_DATA_DIR in this case" }
   - set_fact: potential_masters={{ groups['postgres-EMPTY_DATA_DIR'] }}
   - name: Assert there are no slaves without a master
     assert: { that: "number_of_slave_nodes|int == 0", msg: "There are already slaves but no master. This cluster will not work properly."}
