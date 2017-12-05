@@ -146,7 +146,11 @@ dynamic_shared_memory_type = posix	# the default is the first option
 
 #max_files_per_process = 1000		# min 25
 					# (change requires restart)
-#shared_preload_libraries = ''		# (change requires restart)
+
+# For debugging performance
+shared_preload_libraries = 'pg_stat_statements' # (change requires restart)
+pg_stat_statements.max = 5000 # default 5000
+pg_stat_statements.track = all
 
 # - Cost-Based Vacuum Delay -
 
