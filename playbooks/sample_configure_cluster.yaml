@@ -3,6 +3,14 @@
 - name: First, setup the master
   include: setup_master.yaml
 
+- name: Register master
+  hosts: all
+  tasks:
+    - name: Save master endpoint to a file
+      copy:
+        content: "{{ groups['postgres-MASTER'][0] }}"
+        dest: ../test/state/postgres-service-endpoint.txt
+      delegate_to: localhost
   #- name: Detect configured master node(s) and build appropriate host-groups
   #  hosts: postgres
   #  remote_user: root

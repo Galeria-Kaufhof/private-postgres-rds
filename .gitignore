@@ -4,3 +4,4 @@ pyenv
 *.playbook.retry
 docs/_build
 .vagrant
+test/state

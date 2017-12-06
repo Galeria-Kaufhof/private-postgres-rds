@@ -32,7 +32,10 @@ def run_playbook(context, more_vars=None):
     """
     inventory = path.join(project_path, "test/vagrant_servers")
     playbook = path.join(project_path, "playbooks/sample_configure_cluster.yaml")
-    cmd = "ansible-playbook {playbook} -i {inventory} -vv".format(**locals())
+    cmd = "ansible-playbook {playbook} -f 1 -i {inventory} -vv".format(**locals())
+
+    logging.info(cmd)
+
     run_with_details(cmd)
 
 def run_with_details(cmd):
@@ -45,18 +48,22 @@ def run_with_details(cmd):
 
     """
     logging.info(cmd)
+
     try:
         env = dict(os.environ)
+        # env['ANSIBLE_FORCE_COLOR'] = 'true'
         env['ANSIBLE_ROLES_PATH'] = path.dirname(project_path)
-        check_call("""script -e -f -q /tmp/detailed-test-output.txt -c "{}" """.format(cmd),
-                shell=True, stdout=open(os.devnull, 'w'), env=env)
+#~        check_call("""script -e -f -q /tmp/detailed-test-output.txt -c "{}" """.format(cmd),
+#~                shell=True, stdout=open(os.devnull, 'w'), env=env)
+        check_call(cmd, shell=True, env=env)
     except subprocess.CalledProcessError:
-        logging.warn(open("/tmp/detailed-test-output.txt").read())
+#~        logging.warn(open("/tmp/detailed-test-output.txt").read())
         raise
 
 @when(u'I initialize postgres cluster to {goal}')
 def init_pg_servers(context, goal):
     run_playbook(context)
+    # raise Exception("stop after first run at the end of init_pg_servers")
 
 @when(u'I restore backup to a postgres cluster')
 def step_impl(context):
@@ -83,7 +90,7 @@ def step_impl(context):
     time.sleep(1) # let db operations finish and commit; round up to a second
     context.time_for_pit_recovery = datetime.utcnow() # our servers including postgres use UTC
 
-wipe_out_command = "systemctl stop postgresql.service; rm -rf /var/local/postgresql/data/"
+wipe_out_command = "systemctl stop postgresql.service; systemctl status postgresql.service; rm -rf /var/local/postgresql/data/; ls -al /var/local/postgresql"
 
 @given('empty {servers}')
 def empty_servers(context, servers):
@@ -114,9 +121,11 @@ def wipe_out(context, node):
 @given(u'a fresh postgres cluster')
 def create_fresh_cluster(context):
     ClusterUnderTest.clean_service_urls()
-    empty_servers(context, "master and slaves")
+    # empty_servers(context, "master and slaves")
+    empty_servers(context, "master")
+    empty_servers(context, "slave")
     init_pg_servers(context, "get new cluster")
-    context.dbt.recreate_tables()
+    # context.dbt.recreate_tables()
 
 @when(u'I invoke migrate_to_master --target-master={target_master}')
 def step_impl(context, target_master):

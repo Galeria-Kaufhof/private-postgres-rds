@@ -62,13 +62,13 @@
   block:
   - name: Assert expecting ready servers mit EMPTY_DATA_DIR in this case
     assert: { that: "'postgres-EMPTY_DATA_DIR' in groups", msg: "There are no configured masters yet. Expecting ready servers mit EMPTY_DATA_DIR in this case" }
-  - set_fact: potential_masters={{ groups['postgres-EMPTY_DATA_DIR'] }}
+  - set_fact: potential_masters={{ groups['postgres-EMPTY_DATA_DIR'] | sort }}
   - name: Assert there are no slaves without a master
     assert: { that: "number_of_slave_nodes|int == 0", msg: "There are already slaves but no master. This cluster will not work properly."}
   - name: Assert there are empty node(s) to be configured as master
     assert: { that: "potential_masters|length > 0", msg: "There are no nodes to be setup as master. Please formate a new node."}
   - debug: msg="There was no master node in the replication cluster. {{potential_masters[0]}} is chosen to be the master."
-  - name: Choose one random node to be a master
+  - name: Choose one node to be a master
     add_host:
       name: "{{ potential_masters[0] }}"
       groups: 'postgres-MASTER'
@@ -83,7 +83,7 @@
     assert: { that: "'postgres-EMPTY_DATA_DIR' in groups", msg: "There is no EMPTY_DATA_DIR node, to be used as a slave." }
   - set_fact: potential_slaves={{ groups['postgres-EMPTY_DATA_DIR'] }}
   - debug: msg="There was no slave node in the replication cluster. {{potential_slaves[0]}} is chosen to be a slave."
-  - name: Choose one random node to be a slave
+  - name: Choose one node to be a slave
     add_host:
       name: "{{ potential_slaves[0] }}"
       groups: 'postgres-SLAVE'

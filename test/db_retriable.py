@@ -2,6 +2,7 @@ import logging
 import psycopg2
 import psycopg2.extras
 import socket
+import sys
 import time
 from cluster_under_test import *
 

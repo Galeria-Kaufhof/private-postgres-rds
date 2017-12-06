@@ -10,3 +10,146 @@
       vars:
         for_pg_role: master
         debug_output: yes
+
+- name: Deactivate obsolete master and slaves
+  hosts: postgres-DEACTIVATE
+  gather_facts: False
+  remote_user: root
+  become_user: root
+  become: true
+  tasks:
+    - name: Stop postgres
+      service: name=postgresql enabled=no state=stopped
+    - name: Mark config as deactivated, part1
+      command: mv /var/local/postgresql/data/postgresql.conf /var/local/postgresql/data/postgresql.conf.deactivated
+      args:
+        creates: /var/local/postgresql/data/postgresql.conf.deactivated
+        removes: /var/local/postgresql/data/postgresql.conf
+    - name: Mark config as deactivated, part2
+      command: touch /var/local/postgresql/data/postgresql.conf.deactivated
+      args:
+        creates: /var/local/postgresql/data/postgresql.conf.deactivated
+
+- name: Check current groups
+  hosts: all
+  tasks:
+    - name: "Debug groups"
+      debug: var=groups['postgres-MASTER']
+      delegate_to: localhost
+
+- name: Set up (possibly new) postgres master
+  hosts: postgres-MASTER
+  gather_facts: True
+  remote_user: root
+  become_user: root
+  become: true
+  tasks:
+    - name: Check if recovery (replication) is ongoing
+      stat: path=/var/local/postgresql/data/recovery.conf
+      register: recovery_file
+    - name: Case 1 - promote existing slave to master
+      shell: "pg_ctl -D /var/local/postgresql/data promote"
+      become: true
+      when: recovery_file.stat.exists
+      become_user: postgres
+      notify:
+        - Initial full backup
+
+    # Case 2 - restore from backup - extract data
+
+    - name: Create restore script
+      template:
+        src: "../templates/restore_backup.sh.j2"
+        dest: "/var/local/postgresql/restore_backup.sh"
+        mode: 0555
+    - name: Copy restore bucket credentials
+      copy: dest=/var/local/postgresql/aws_restore.credentials.sh
+        src="{{ credentials_store }}/backup/backuper-{{ from_db_instance }}-{{ from_zone }}.credentials.sh"
+      when: from_db_instance is defined
+
+    - name: Case 2 - restore from backup - extract data
+      shell: "/var/local/postgresql/restore_backup.sh {{ recover_from }} '{{recovery_target_time | default() }}'"
+      become: true
+      become_user: postgres
+      when: recover_from is defined
+      notify:
+        - Restart postgres
+        - Initial full backup
+
+    - name: Check existing configuration file
+      stat: path=/var/local/postgresql/data/postgresql.conf
+      register: configuration_file
+    - name: Case 3 - init DB - new database storage
+      shell: "ls -al /var/local/postgresql; pg_ctl -D /var/local/postgresql/data initdb"
+      become: true
+      become_user: postgres
+      when: not configuration_file.stat.exists
+      notify:
+        - Restart postgres
+        - Initial full backup
+
+    - debug: var=ansible_local.pg
+
+    # For all cases: new master, just promoted to master or an old existing master
+    - name: Copy postgres configuration file
+      template:
+        src: "../templates/postgresql.conf.j2"
+        dest: "/var/local/postgresql/data/postgresql.conf"
+      notify: Restart postgres
+    - name: Copy postgres hba file
+      template:
+        src: "../templates/pg_hba.conf.j2"
+        dest: "/var/local/postgresql/data/pg_hba.conf"
+      notify: Restart postgres
+
+    # Configure backup
+
+    - name: Create log directory
+      file:
+        state: directory
+        mode: 0755
+        owner: postgres
+        path: "/var/local/postgresql/log"
+
+    # TODO extract to AWS offsite backup setup
+    #~    - name: Copy backup bucket credentials
+    #~      copy: dest=/var/local/postgresql/aws_backup.credentials.sh
+    #~        src="{{ credentials_store }}/backup/{{ backup_user_name }}.credentials.sh"
+
+    #~    - name: Create backup script
+    #~      template:
+    #~        src: "../templates/full_backup_to_aws.sh.j2"
+    #~        dest: "/var/local/postgresql/full_backup_to_aws.sh"
+    #~        mode: 0555
+
+    #~    - name: Create archive log script
+    #~      template:
+    #~        src: "../templates/archive_xlog_to_aws.sh.j2"
+    #~        dest: "/var/local/postgresql/archive_xlog_to_aws.sh"
+    #~        mode: 0555
+
+    - name: Configure full backup
+      cron:
+        name: postgres full backup
+        minute: "{{ 59 |random}}"
+        hour: "3"
+        user: postgres
+        job: "/var/local/postgresql/full_backup_to_aws.sh >>/var/local/postgresql/log/backup.log 2>&1"
+
+  handlers:
+    - name: Restart postgres
+      service: name=postgresql enabled=yes state=restarted
+      notify: Wait until (possible) recovery is finished
+    - name: Wait until (possible) recovery is finished
+      wait_for:
+        path: /var/local/postgresql/data/recovery.conf
+        state: absent
+        timeout: 2592000 # 30 days = almost forever
+    - name: Initial full backup
+      command: "/var/local/postgresql/full_backup_to_aws.sh"
+      poll: 0
+      async: 2592000 # 30 days = almost forever
+      become: true
+      become_user: postgres
+      # when: False # deactivate initial full backup for faster setup
+
