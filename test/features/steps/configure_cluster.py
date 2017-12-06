@@ -32,7 +32,9 @@ def run_playbook(context, more_vars=None):
     """
     inventory = path.join(project_path, "test/vagrant_servers")
     playbook = path.join(project_path, "playbooks/sample_configure_cluster.yaml")
-    cmd = "ansible-playbook {playbook} -f 1 -i {inventory} -vv".format(**locals())
+    extra = "--extra-vars 'admin_password={} replicator_password={}'".format(
+            ClusterUnderTest.admin_password, ClusterUnderTest.replicator_password)
+    cmd = "ansible-playbook {playbook} -f 1 -i {inventory} {extra} -vv".format(**locals())
 
     logging.info(cmd)
 
@@ -125,7 +127,7 @@ def create_fresh_cluster(context):
     empty_servers(context, "master")
     empty_servers(context, "slave")
     init_pg_servers(context, "get new cluster")
-    # context.dbt.recreate_tables()
+    context.dbt.recreate_tables()
 
 @when(u'I invoke migrate_to_master --target-master={target_master}')
 def step_impl(context, target_master):

@@ -97,28 +97,6 @@
     - name: Ensure postgres master is started
       service: name=postgresql enabled=yes state=started
 
-- name: Create, set up postgres users
-  hosts: postgres-MASTER
-  gather_facts: False
-  remote_user: root
-  become_user: postgres
-  become: true
-  tasks:
-    - name: Set domain team admin user
-      postgresql_user:
-        login_unix_socket: /tmp
-        name: admin
-        password: "{{ admin_password }}"
-        role_attr_flags: SUPERUSER
-        no_password_changes: yes
-
-    - name: Set replication user
-      postgresql_user:
-        login_unix_socket: /tmp
-        name: replicator
-        password: "{{ replicator_password }}"
-        role_attr_flags: REPLICATION
-
 - name: Configure postgres slaves
   hosts: postgres-SLAVES
   remote_user: root

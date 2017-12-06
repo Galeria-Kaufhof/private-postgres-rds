@@ -23,16 +23,7 @@ class ClusterUnderTest:
     service_url = OrganizationConf.service_url(zone, db_instance_name)
     credentials_folder = "test-credentials"
     admin_password = "Baequahci6la"
-#~    admin_password = open("{folder}/psql/{zone}/{name}/admin_password".format(
-#~        folder=credentials_folder, zone=zone, name=db_instance_name)).read().strip()
-#~    admin_password = open("{folder}/admin_password".format(
-#~        folder=credentials_folder, name=db_instance_name)).read().strip()
-#~    backuper_aws_credentials = \
-#~            "{folder}/backup/backuper-{name}-{zone}.credentials.sh".format(
-#~                    folder=credentials_folder, zone=zone, name=db_instance_name)
-#~    backup_configurer_aws_credentials = \
-#~            "{folder}/backup/dev/configurer.credentials.sh".format(
-#~                    folder=credentials_folder, zone=zone, name=db_instance_name)
+    replicator_password = "doh6Ohph1um9"
 
     @classmethod
     def service_url_filename(cls):
