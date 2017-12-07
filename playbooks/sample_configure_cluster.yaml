@@ -1,14 +1,39 @@
 # Decide: reuse through import-playbook or (fine granular) by referring to single task-lists
 ---
+- name: Set up cluster config - decide, which is master and which is slave
+  hosts: postgres
+  tasks:
+    - debug: var=hostvars
+    - name: Set cluster config
+      set_fact:
+        cluster_config: "{{ lookup('compute_postgres_groups', hostvars) }}"
+        # use ansible_local.pg
+
+    - debug: var=cluster_config['postgres-MASTER']
+
+    - name: Build group {{ item }}
+      group_by: key={{ item }}
+      when: (item in cluster_config) and (inventory_hostname in cluster_config[item])
+      with_items:
+        - postgres-MASTER
+        - postgres-SLAVES
+        - postgres-DEACTIVATED
+        - postgres-DEACTIVATE
+
+    - debug: var=cluster_config['slave_upstream'] # set for every slave
+    - debug: var=groups
+
+    - fail:
+
 - name: First, setup the master
   include: setup_master.yaml
 
 - name: Register master
-  hosts: all
+  hosts: postgres-MASTER
   tasks:
     - name: Save master endpoint to a file
       copy:
-        content: "{{ groups['postgres-MASTER'][0] }}"
+        content: "{{ inventory_hostname }}"
         dest: ../test/state/postgres-service-endpoint
       delegate_to: localhost
 
