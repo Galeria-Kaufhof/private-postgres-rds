@@ -79,8 +79,10 @@
     - name: Check existing configuration file
       stat: path=/var/local/postgresql/data/postgresql.conf
       register: configuration_file
+  #~    - pause:
+  #~        prompt: Before Case 3 - init DB
     - name: Case 3 - init DB - new database storage
-      shell: "ls -al /var/local/postgresql; pg_ctl -D /var/local/postgresql/data initdb"
+      shell: "ls -al /var/local/postgresql; find /var/local/postgresql; pg_ctl -D /var/local/postgresql/data initdb"
       become: true
       become_user: postgres
       when: not configuration_file.stat.exists

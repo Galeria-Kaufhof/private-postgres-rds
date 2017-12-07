@@ -1,0 +1,59 @@
+---
+- name: Detect configured master node(s) and build appropriate host-groups
+  hosts: postgres
+  remote_user: admin
+  become: True
+  tasks:
+    - include_role:
+        name: private-postgres-rds
+        tasks_from: build_groups.yaml
+      vars:
+        for_pg_role: slave
+        debug_output: yes
+
+- name: Configure postgres slaves
+  hosts: postgres-SLAVE
+  become: True
+  tasks:
+    - name: Check existing configuration file
+      stat: path=/var/local/postgresql/data/postgresql.conf
+      register: configuration_file
+
+    - name: Set up replicator credentials
+      template:
+        src: "../templates/replicator-pgpass.conf.j2"
+        dest: "/var/local/postgresql/replicator-pgpass.conf"
+        owner: postgres
+        mode: 0600
+      notify: Restart postgres
+
+    - name: Run backup (initial replication) from master, only for empty slaves
+      # Note: you can remove `--checkpoint=fast` from the following pg_basebackup
+      # call to reduce (spread) load on master during replication.
+      # Replication will take longer then.
+      #
+      # Possible extension: use --max-rate to throttle replication, e.g. `--max-rate 20000` for 20 MB/s
+      shell: PGPASSFILE=/var/local/postgresql/replicator-pgpass.conf pg_basebackup -D /var/local/postgresql/data/ -h {{ cluster_config['slave_upstream'] }} -U replicator --progress -R -w --xlog-method=stream --checkpoint=fast
+      become_user: postgres
+      become: true
+      when: not configuration_file.stat.exists
+
+    - name: Check if replication is configured
+      stat: path=/var/local/postgresql/data/recovery.conf
+      register: recovery_configuration_file
+
+    - name: Start postgres on the slave for continuous replication
+      service: name=postgresql enabled=yes state=started
+      when: recovery_configuration_file.stat.exists
+
+    - name: Do not run full backup on slave
+      cron:
+        name: postgres full backup
+        user: postgres
+        state: absent
+
+  handlers:
+    - name: Restart postgres
+      service: name=postgresql enabled=yes state=restarted
+
+

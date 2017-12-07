@@ -9,8 +9,12 @@
     - name: Save master endpoint to a file
       copy:
         content: "{{ groups['postgres-MASTER'][0] }}"
-        dest: ../test/state/postgres-service-endpoint.txt
+        dest: ../test/state/postgres-service-endpoint
       delegate_to: localhost
+
+- name: Setup slave(s)
+  include: setup_slave.yaml
+
   #- name: Detect configured master node(s) and build appropriate host-groups
   #  hosts: postgres
   #  remote_user: root
@@ -51,3 +55,15 @@
   #        name: private-postgres-rds
   #        tasks_from: setup_offsite_backup # specific
   #
+
+  #~    - debug:
+  #~        msg: |
+  #~          You can now use the postgres instance with
+  #~
+  #~          psql -h {{ postgres_service_domain }} -U admin -d postgres
+  #~
+  #~          The password, initially set by this ansible playbook is
+  #~          {{ admin_password }}
+  #~          Please change on first usage!
+  #~          Please create additional users with less privileges to use with you application!
+
