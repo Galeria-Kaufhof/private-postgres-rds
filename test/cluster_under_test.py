@@ -22,16 +22,16 @@ class ClusterUnderTest:
     SERVER4 = "192.168.121.104"
     service_url = OrganizationConf.service_url(zone, db_instance_name)
     credentials_folder = "test-credentials"
-    admin_password = "Baequahci6la"
-    replicator_password = "doh6Ohph1um9"
+    admin_password = "test-Baequahci6la"
+    replicator_password = "test-doh6Ohph1um9"
 
     @classmethod
     def service_url_filename(cls):
-        return "{}/test/state/postgres-service-endpoint.txt".format(project_path)
+        return "{}/test/state/postgres-service-endpoint".format(project_path)
 
     @classmethod
     def readonly_service_url_filename(cls):
-        return "{}/test/state/readonly-postgres-service-endpoint.txt".format(project_path)
+        return "{}/test/state/readonly-postgres-service-endpoint".format(project_path)
 
     @classmethod
     def remove_file_safe(cls, path_to_del):
@@ -54,7 +54,7 @@ class ClusterUnderTest:
             resolved = open(cls.service_url_filename()).read().strip()
             return resolved
         except IOError as ex:
-            raise Exception("No server registered under service_url")
+            raise Exception("No server registered under service_url: " + str(ex))
 
 t = unittest.TestCase('__init__') # just use for assertions
 

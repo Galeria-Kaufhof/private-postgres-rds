@@ -8,6 +8,9 @@
       raw: test -e /usr/bin/python || (apt -y update && apt install -y python-minimal)
       register: output
       changed_when: output.stdout != ""
+  tasks:
+    - name: Set time zone to UTC
+      shell: "timedatectl set-timezone UTC"
 
 
 - name: Test env postgres software setup

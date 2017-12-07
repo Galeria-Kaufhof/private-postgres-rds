@@ -22,7 +22,7 @@ def run_on_host(host, command, timeout=None):
     cmd = "ansible -i vagrant_servers --limit {host} postgres {extra} --become -m shell -a '{command}'".format(**locals())
     run_with_details(cmd)
 
-def run_playbook(context, more_vars=None):
+def run_playbook(context, more_vars=None, interactive=False):
     """Run ansible playbook for provided inventory file and redirect output
     including colors to a separate file. Run
 
@@ -38,7 +38,10 @@ def run_playbook(context, more_vars=None):
 
     logging.info(cmd)
 
-    run_with_details(cmd)
+    if interactive:
+        raw_input("Run\n{}\nThen press enter.".format(cmd))
+    else:
+        run_with_details(cmd)
 
 def run_with_details(cmd):
     """Execute command via shell, pretend to be a psedo-tty and save colorized output
@@ -55,17 +58,15 @@ def run_with_details(cmd):
         env = dict(os.environ)
         # env['ANSIBLE_FORCE_COLOR'] = 'true'
         env['ANSIBLE_ROLES_PATH'] = path.dirname(project_path)
-#~        check_call("""script -e -f -q /tmp/detailed-test-output.txt -c "{}" """.format(cmd),
-#~                shell=True, stdout=open(os.devnull, 'w'), env=env)
         check_call(cmd, shell=True, env=env)
+        # TODO use stdout=open(some_tmp_file, 'w'), show in case of error
     except subprocess.CalledProcessError:
-#~        logging.warn(open("/tmp/detailed-test-output.txt").read())
+        # TODO logging.warn(open("/tmp/detailed-test-output.txt").read())
         raise
 
 @when(u'I initialize postgres cluster to {goal}')
 def init_pg_servers(context, goal):
-    run_playbook(context)
-    # raise Exception("stop after first run at the end of init_pg_servers")
+    run_playbook(context) # , interactive=True)
 
 @when(u'I restore backup to a postgres cluster')
 def step_impl(context):
