@@ -2,8 +2,10 @@
 ---
 - name: Set up cluster config - decide, which is master and which is slave
   hosts: postgres
+  become: true
+  become_user: root
   tasks:
-    - debug: var=hostvars
+    #    - debug: var=hostvars
     - name: Set cluster config
       set_fact:
         cluster_config: "{{ lookup('compute_postgres_groups', hostvars) }}"
@@ -22,8 +24,6 @@
 
     - debug: var=cluster_config['slave_upstream'] # set for every slave
     - debug: var=groups
-
-    - fail:
 
 - name: First, setup the master
   include: setup_master.yaml

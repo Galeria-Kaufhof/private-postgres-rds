@@ -41,7 +41,7 @@ class LookupModule(LookupBase):
             else:
                 candidates_empty = detect(servers, 'EMPTY_DATA_DIR')
                 if len(candidates_empty) == 0:
-                    raise Exception('No candidates for becoming postgres master found')
+                    raise Exception('No candidates for becoming postgres master found. Servers: {}'.format(servers))
                 master = candidates_empty[0]
 
         slaves = []

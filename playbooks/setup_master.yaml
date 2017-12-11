@@ -1,16 +1,4 @@
 ---
-- name: Detect configured master node(s) and build appropriate host-groups
-  hosts: postgres
-  remote_user: admin
-  become: True
-  tasks:
-    - include_role:
-        name: private-postgres-rds
-        tasks_from: build_groups.yaml
-      vars:
-        for_pg_role: master
-        debug_output: yes
-
 - name: Deactivate obsolete master and slaves
   hosts: postgres-DEACTIVATE
   gather_facts: False
