@@ -1,9 +1,11 @@
 #!/usr/bin/env python2
 from __future__ import print_function
 from subprocess import call, check_call, check_output
+import io
 import logging
 import os
 import subprocess
+import tempfile
 import time
 from datetime import datetime
 from behave import *
@@ -56,12 +58,14 @@ def run_with_details(cmd):
 
     try:
         env = dict(os.environ)
-        # env['ANSIBLE_FORCE_COLOR'] = 'true'
+        env['ANSIBLE_FORCE_COLOR'] = 'true'
         env['ANSIBLE_ROLES_PATH'] = path.dirname(project_path)
-        check_call(cmd, shell=True, env=env)
-        # TODO use stdout=open(some_tmp_file, 'w'), show in case of error
+        fprefix = "test-{}".format(datetime.now().isoformat('T').replace(':', '_'))
+        fdetails = tempfile.NamedTemporaryFile(prefix=fprefix, delete=False)
+        check_call(cmd, shell=True, stdout=fdetails, stderr=fdetails, env=env)
     except subprocess.CalledProcessError:
-        # TODO logging.warn(open("/tmp/detailed-test-output.txt").read())
+        fdetails.close()
+        logging.warn("Failed. See details in {}".format(fdetails.name))
         raise
 
 @when(u'I initialize postgres cluster to {goal}')
