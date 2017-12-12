@@ -4,12 +4,12 @@
   hosts: postgres
   become: true
   become_user: root
+  roles:
+    - private-postgres-rds # make lookups etc. available
   tasks:
-    #    - debug: var=hostvars
     - name: Set cluster config
       set_fact:
         cluster_config: "{{ lookup('compute_postgres_groups', hostvars) }}"
-        # use ansible_local.pg
 
     - debug: var=cluster_config['postgres-MASTER']
 
