@@ -167,11 +167,33 @@ def test_create_vagrant_cluster(ctx, recreate=False):
 @task
 def test(ctx, test_inventory=None):
     '''Run functional tests against a test cluster. Create vagrant test cluster if needed.'''
+
+    print("=== Starting unit tests - doctest ===")
+    def run_doctest(name):
+        p = path.join(rds_path, "lookup_plugins", name)
+        ctx.run("python " + p, pty=True)
+
+    # run_doctest("compute_postgres_groups.py")
+
+    print("=== Starting functional tests - scenarios ===")
     with ctx.cd(path.join(rds_path, 'test')):
         if test_inventory == None: # use vagrant
             # ctx.run("vagrant status")
             pass
         else:
             pass # TODO
-        ctx.run("behave features/switchover.feature", pty=True)
 
+        ctx.run("behave features/switchover.feature", pty=True)
+        return
+        ctx.run("behave add-slave.feature", pty=True)
+        ctx.run("behave backup_restore.feature", pty=True)
+        ctx.run("behave backup_restore.feature", pty=True)
+        ctx.run("behave backup_restore.feature", pty=True)
+        ctx.run("behave credentials.feature", pty=True)
+        ctx.run("behave inventory.feature", pty=True)
+        ctx.run("behave inventory.feature", pty=True)
+        ctx.run("behave rolling-upgrade.feature", pty=True)
+        ctx.run("behave rolling-upgrade.feature", pty=True)
+
+        return
+        ctx.run("behave features", pty=True)
