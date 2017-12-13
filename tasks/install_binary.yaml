@@ -70,6 +70,8 @@
 
 - name: "Reboot if required"
   shell: sleep 2 && shutdown -r now 'Reboot required'
+  async: 1 # need this to avoid "Shared connectiont to ... closed. unreachable"
+  poll: 0
   args:
     removes: /var/run/reboot-required
   become: true
