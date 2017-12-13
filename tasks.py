@@ -162,7 +162,8 @@ def test_create_vagrant_cluster(ctx, recreate=False):
     with ctx.cd(path.join(rds_path, 'test')):
         if recreate:
             ctx.run("vagrant destroy --force", pty=True)
-        ctx.run("vagrant up --provider=libvirt --provision", pty=True)
+        ctx.run("vagrant up --provider=libvirt pg01", pty=True)
+        ctx.run("vagrant up --provider=libvirt pg02", pty=True)
 
 @task
 def test(ctx, test_inventory=None):

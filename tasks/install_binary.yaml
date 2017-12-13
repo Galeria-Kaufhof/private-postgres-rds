@@ -20,6 +20,7 @@
   # TODO when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
   # TODO support RHEL too
 
+- debug: msg="using installation source {{ installation_source }}"
 - name: Download installation tar first to avoid timeouts
   get_url:
     url: "{{ installation_source }}"
