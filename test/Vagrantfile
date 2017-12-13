@@ -15,13 +15,23 @@ def define_pg_vm(config, n)
     end
     kconfig.vm.network "private_network", ip: ip
     yield kconfig if block_given?
+
+    # Enable log-in with interactive user ssh key on all the VMs,
+    # TODO: check what to do for e.g. Travis-CI, generate a new key-pair?
+    # Note: by default vagrant generates a new key pair for *every* VM,
+    # making handling cumbersome.
+    ssh_pub_key = File.readlines("#{Dir.home}/.ssh/id_rsa.pub").first.strip
+    config.vm.provision 'shell', inline: "mkdir -p /root/.ssh"
+    config.vm.provision 'shell', inline: "echo #{ssh_pub_key} >> /root/.ssh/authorized_keys"
+    config.vm.provision 'shell', inline: "echo #{ssh_pub_key} >> /home/vagrant/.ssh/authorized_keys", privileged: false
+
     kconfig.vm.provision "ansible" do |ansible|
       ansible.playbook = "init-test-servers.yml"
       ansible.inventory_path = "vagrant_servers"
       ansible.verbose = "vv"
       ansible.limit = ip
       ansible.skip_tags = []
-      ansible.extra_vars = {remote_user: "vagrant"}
+      ansible.extra_vars = {remote_user: "root"} # Alternatively: use user "vagrant"
     end
   end
 end
