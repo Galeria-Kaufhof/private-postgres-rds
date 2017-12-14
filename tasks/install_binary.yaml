@@ -21,10 +21,15 @@
   # TODO support RHEL too
 
 - debug: msg="using installation source {{ installation_source }}"
+
+- name: Create cache folder
+  file: path=/var/cache/install/pg state=directory
+  ignore_errors: true # ignore if it already exists as a link in vagrant-cachier setup
+
 - name: Download installation tar first to avoid timeouts
   get_url:
     url: "{{ installation_source }}"
-    dest: /tmp/{{ postgres_binary_name }}
+    dest: /var/cache/install/pg/{{ postgres_binary_name }}
     force: no
     timeout: 180
   when: data_folder.stat.exists == False
@@ -32,7 +37,7 @@
 - name: Install postgres from tar
   unarchive:
     # src: "{{ installation_source }}"
-    src: /tmp/{{ postgres_binary_name }}
+    src: /var/cache/install/pg/{{ postgres_binary_name }}
     dest: /usr/local
     copy: no
   when: data_folder.stat.exists == False

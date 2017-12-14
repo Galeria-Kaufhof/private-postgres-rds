@@ -9,9 +9,9 @@ def define_pg_vm(config, n)
   ip = "192.168.121.10#{n}"
   config.vm.define name do |kconfig|
     kconfig.vm.hostname = "#{name}.vagrant"
-    kconfig.vm.provider "virtualbox" do |vb|
-      vb.customize ["modifyvm", :id, "--name", kconfig.vm.hostname,
-                    "--memory", "1024", "--cpus", "2", "--ioapic", "on"]
+    kconfig.vm.provider :libvirt do |domain|
+      domain.memory = 1024
+      domain.cpus = 2
     end
     kconfig.vm.network "private_network", ip: ip
     yield kconfig if block_given?
@@ -42,8 +42,11 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   if Vagrant.has_plugin?("vagrant-cachier")
     config.cache.scope = :machine
     config.cache.enable :gem
+    config.cache.enable :generic, {
+      'install' => { cache_dir: '/var/cache/install' }
+    }
   else
-    puts "Please run: vagrant plugin install vagrant-cachier"
+    puts "Please run: `vagrant plugin install vagrant-cachier` to enable caching and faster provisioning"
   end
 
   # config.hostsupdater.remove_on_suspend = false
