@@ -13,51 +13,36 @@ PG_VAR_DIR = '{{ postgres_var_dir }}' # { { postgres_var_dir } }
 DATA_DIR = PG_VAR_DIR + '/data'
 
 class State:
-    NOT_REACHABLE = 'NOT_REACHABLE'     # stop the inventory due insufficient data
-    CONFIGURED_SLAVE = 'CONFIGURED_SLAVE'  # recovery.conf is present
+    NOT_REACHABLE = 'NOT_REACHABLE'         # stop the inventory due insufficient data
+    CONFIGURED_SLAVE = 'CONFIGURED_SLAVE'   # recovery.conf is present
     CONFIGURED_MASTER = 'CONFIGURED_MASTER' # no recovery.conf but postgresql.conf
     EMPTY_DATA_DIR = 'EMPTY_DATA_DIR'
-    DEACTIVATED = 'DEACTIVATED'       # e.g. after rolling upgrade, but the VM not deleted yet
-    NOT_INITIALIZED = 'NOT_INITIALIZED'   # postgres is not installed yet
-    UNKNOWN = None
-    # NOT_REACHABLE = 1     # stop the inventory due insufficient data
-    # CONFIGURED_SLAVE = 2  # recovery.conf is present
-    # CONFIGURED_MASTER = 3 # no recovery.conf but postgresql.conf
-    # EMPTY_DATA_DIR = 4
-    # DEACTIVATED = 5       # e.g. after rolling upgrade, but the VM not deleted yet
-    # NOT_INITIALIZED = 6   # postgres is not installed yet
-    # UNKNOWN = None
-
+    DEACTIVATED = 'DEACTIVATED' # e.g. after rolling upgrade, but the VM not deleted yet
+    NOT_INITIALIZED = 'NOT_INITIALIZED'     # postgres is not installed yet
+    UNKNOWN = 'UNKNOWN'         # e.g. access denied, or unexpected error in the script
 
 def detect_state():
-    status = 0
-    lsres = ""
     try:
-        lsres = subprocess.check_output(['ls', '-1', DATA_DIR])
-    except subprocess.CalledProcessError as ex:
-        status = ex.returncode
-        lsres = ex.output
-    # print(status, lsres)
-    files = [f.strip() for f in lsres.split("\n")]
-    # print(files, ('postgresql.conf' in files))
+        files = os.listdir(DATA_DIR)
+    except OSError as oserr:
+        if oserr.errno == 2: # not found
+            try:
+                varfiles = os.listdir(PG_VAR_DIR)
+                return State.EMPTY_DATA_DIR
+            except OSError as oserr:
+                if oserr.errno == 2: # not found
+                    return State.NOT_INITIALIZED
+                else:
+                    return State.UNKNOWN
+        else: # e.g. oserr.errno == 13: access denied
+            return State.UNKNOWN
     if 'postgresql.conf.deactivated' in files:
         return State.DEACTIVATED
     elif 'recovery.conf' in files:
         return State.CONFIGURED_SLAVE
     elif 'postgresql.conf' in files:
         return State.CONFIGURED_MASTER
-    elif status == 2:
-        status = 0
-        try:
-            lsres = subprocess.check_output(['ls', '-1', PG_VAR_DIR])
-        except subprocess.CalledProcessError as ex:
-            status = ex.returncode
-            lsres = ex.output
-        if status == 2:
-            return State.NOT_INITIALIZED
-        else:
-            return State.EMPTY_DATA_DIR
-    elif status == 0:
+    else:
         return State.EMPTY_DATA_DIR
 
 def get_size(start_path = '.'):
