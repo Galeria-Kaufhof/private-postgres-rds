@@ -1,0 +1,20 @@
+[postgres]
+192.168.44.101
+192.168.44.102
+#~192.168.121.103
+#~192.168.121.104
+
+[postgres:vars]
+layer='postgresql'
+
+[vagrant:children]
+postgres
+
+[vagrant:vars]
+# overwrites default 'admin' user in the playbook
+ansible_ssh_user=root
+datacenter='vagrant'
+zone='vagrant'
+stack='db'
+shared_ip=192.168.44.100
+ka_interface='eth1'

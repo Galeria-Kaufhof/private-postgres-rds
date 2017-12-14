@@ -15,7 +15,6 @@
 
 - name: Test env postgres software setup
   hosts: postgres
-  remote_user: vagrant
   become: True
   vars:
     postgres_version: "9.6.6"

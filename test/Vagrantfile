@@ -6,13 +6,27 @@ VAGRANTFILE_API_VERSION = "2"
 def define_pg_vm(config, n)
   # VM configuration for postgres nodes
   name = "pg0#{n}"
-  ip = "192.168.121.10#{n}"
   config.vm.define name do |kconfig|
     kconfig.vm.hostname = "#{name}.vagrant"
-    kconfig.vm.provider :libvirt do |domain|
-      domain.memory = 1024
-      domain.cpus = 2
+
+    if ENV['RDS_TEST_USE_LIBVIRT']
+      # Use libvirt on linux and for CI
+      kconfig.vm.box = "generic/ubuntu1604"
+      kconfig.vm.provider :libvirt do |domain|
+        domain.memory = 1024
+        domain.cpus = 2
+      end
+      ip = "192.168.121.10#{n}"
+    else
+      # Use VirtualBox on e.g. Mac OSX
+      kconfig.vm.box = "ubuntu/xenial64"
+      kconfig.vm.provider "virtualbox" do |vb|
+        vb.customize ["modifyvm", :id, "--name", kconfig.vm.hostname,
+                      "--memory", "1024", "--cpus", "2", "--ioapic", "on"]
+      end
+      ip = "192.168.44.10#{n}"
     end
+
     kconfig.vm.network "private_network", ip: ip
     yield kconfig if block_given?
 
@@ -23,11 +37,18 @@ def define_pg_vm(config, n)
     ssh_pub_key = File.readlines("#{Dir.home}/.ssh/id_rsa.pub").first.strip
     config.vm.provision 'shell', inline: "mkdir -p /root/.ssh"
     config.vm.provision 'shell', inline: "echo #{ssh_pub_key} >> /root/.ssh/authorized_keys"
-    config.vm.provision 'shell', inline: "echo #{ssh_pub_key} >> /home/vagrant/.ssh/authorized_keys", privileged: false
+    # config.vm.provision 'shell', inline: "echo #{ssh_pub_key} >> /home/vagrant/.ssh/authorized_keys", privileged: false
+    config.vm.provision 'shell', inline: "echo #{ssh_pub_key} >> /home/ubuntu/.ssh/authorized_keys", privileged: false
 
     kconfig.vm.provision "ansible" do |ansible|
       ansible.playbook = "init-test-servers.yml"
-      ansible.inventory_path = "vagrant_servers"
+      if ENV['RDS_TEST_USE_LIBVIRT']
+        ansible.inventory_path = "vagrant_servers_libvirt"
+      else
+        ansible.inventory_path = "vagrant_servers_virtualbox"
+      end
+      ansible.become = true
+      ansible.become_user = "root"
       ansible.verbose = "vv"
       ansible.limit = ip
       ansible.skip_tags = []
@@ -37,8 +58,6 @@ def define_pg_vm(config, n)
 end
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
-  # config.vm.box = "ubuntu/xenial64"
-  config.vm.box = "generic/ubuntu1604"
   if Vagrant.has_plugin?("vagrant-cachier")
     config.cache.scope = :machine
     config.cache.enable :gem

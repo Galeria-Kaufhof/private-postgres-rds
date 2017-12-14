@@ -16,10 +16,16 @@ class ClusterUnderTest:
     zone = OrganizationConf.test_zone()
     db_instance_name = 'test'
 
-    INITIAL_MASTER = "192.168.121.101"
-    INITIAL_SLAVE  = "192.168.121.102"
-    SERVER3 = "192.168.121.103"
-    SERVER4 = "192.168.121.104"
+    if os.environ.get('RDS_TEST_USE_LIBVIRT'):
+        INITIAL_MASTER = "192.168.121.101"
+        INITIAL_SLAVE  = "192.168.121.102"
+        SERVER3 = "192.168.121.103"
+        SERVER4 = "192.168.121.104"
+    else:
+        INITIAL_MASTER = "192.168.44.101"
+        INITIAL_SLAVE  = "192.168.44.102"
+        SERVER3 = "192.168.44.103"
+        SERVER4 = "192.168.44.104"
     service_url = OrganizationConf.service_url(zone, db_instance_name)
     credentials_folder = "test-credentials"
     admin_password = "test-Baequahci6la"

@@ -17,11 +17,18 @@ project_path = path.dirname(path.dirname(path.dirname(path.dirname(path.abspath(
 import sys
 # print("-----------", "\n".join(sys.path), "------------")
 
+def test_inventory():
+    if os.environ.get('RDS_TEST_USE_LIBVIRT'):
+        return path.join(project_path, "test/vagrant_servers_libvirt")
+    else:
+        return path.join(project_path, "test/vagrant_servers_virtualbox")
+
 def run_on_host(host, command, timeout=None):
     extra = ""
     if timeout:
         extra += "-B {}".format(timeout)
-    cmd = "ansible -i vagrant_servers --limit {host} postgres {extra} --become -m shell -a '{command}'".format(**locals())
+    inventory = test_inventory()
+    cmd = "ansible -i {inventory} --limit {host} postgres {extra} --become -m shell -a '{command}'".format(**locals())
     run_with_details(cmd)
 
 def run_playbook(context, more_vars=None, interactive=False):
@@ -32,7 +39,7 @@ def run_playbook(context, more_vars=None, interactive=False):
 
     in a separate terminal to observe ansible progress.
     """
-    inventory = path.join(project_path, "test/vagrant_servers")
+    inventory = test_inventory()
     playbook = path.join(project_path, "playbooks/sample_configure_cluster.yaml")
     extra = "--extra-vars 'admin_password={} replicator_password={}'".format(
             ClusterUnderTest.admin_password, ClusterUnderTest.replicator_password)
