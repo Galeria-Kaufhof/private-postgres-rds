@@ -1,6 +1,6 @@
 ---
 - name: Configure postgres slaves
-  hosts: postgres-SLAVE
+  hosts: postgres-SLAVES
   become: True
   tasks:
     - name: Check existing configuration file
