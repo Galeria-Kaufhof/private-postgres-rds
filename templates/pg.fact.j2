@@ -89,6 +89,15 @@ def detect_data_space_mb():
     except:
         return -1 # default if undetected
 
+def detect_upstream():
+    try:
+        recoveryconf = open(path.join(DATA_DIR, 'recovery.conf')).read()
+        match_upstream = re.search(r'host=(\S+)', recoveryconf)
+        if match_upstream:
+            return match_upstream.group(1)
+    except:
+        pass # if e.g. file not found, then there is no information about upstream
+
 if __name__ == '__main__':
     from sys import argv
     if (len(argv) > 1) and ('-s' in argv[1]):
@@ -104,4 +113,5 @@ if __name__ == '__main__':
             "running": running,
             "last_xlog": last_xlog,
             "repl_delay": repl_delay,
+            "upstream": detect_upstream(),
             })
