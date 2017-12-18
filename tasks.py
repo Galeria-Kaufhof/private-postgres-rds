@@ -10,7 +10,9 @@ from os import path
 
 rds_path = path.dirname(path.abspath(__file__))
 sys.path.insert(0, path.join(rds_path, 'lib'))
-from conf import OrganizationConf, get_env
+from sample_cluster_management import SampleClusterManagement
+
+management = SampleClusterManagement()
 
 @task
 def sync_virtualenv(ctx):
@@ -44,12 +46,6 @@ def once_organization_wide(ctx, aws_account):
     """
     ctx.run("ansible-playbook organization-once/configure-once.playbook.yaml -vv --extra-vars='credentials_store={} aws_account={}'".format(credentials_store(), aws_account), pty=True, echo=True)
 
-def str_var_dict(var_dict=None):
-    if var_dict == None:
-        return ''
-    else:
-        return ' '.join(["{}={}".format(k, var_dict[k]) for k in var_dict]) # TODO escaping
-
 def init_pg_servers_play_run(zone, db_instance_name, incremental_backup, more_vars=None, more_env_vars=None):
     if incremental_backup not in ["on", "off"]:
         raise ValueError("Only 'on', 'off' are supported as values for '--incremental-backup'")
@@ -72,14 +68,13 @@ ARGS_HELP = {
         'target-master': "fqdn of the target master" }
 
 @task(positional=[], help=ARGS_HELP)
-def configure_cluster(ctx, zone, db_instance_name, incremental_backup):
+def configure_cluster(ctx):
     """Initialize an empty cluster or update configuration of a running cluster.
-    Implementation: runs `init_pg_cluster` playbook."""
-    ctx.run(init_pg_servers_play_run(zone, db_instance_name, incremental_backup),
-        pty=True, echo=True)
+    Implementation: runs the cluster configuration playbook."""
+    ctx.run(management.playbook_cmd(), env=management.playbook_env(), pty=True, echo=True)
 
 @task(positional=[], help=ARGS_HELP)
-def migrate_to_master(ctx, zone, db_instance_name, target_master, incremental_backup):
+def migrate_to_master(ctx, target_master):
     """Helps with rolling upgrade. Typical case: replace master+slave by new,
     upgraded, replicated master+slave.
     Implementation: runs 3-step provisioning:
@@ -124,9 +119,9 @@ def restore_cluster(ctx, zone, db_instance, incremental_backup, from_zone=None, 
     if from_db_instance == None:
         from_db_instance = db_instance
     if backup_folder == None:
-        get_env('AWS_SECRET_ACCESS_KEY', 'to list the backup buckets at AWS S3.')
-        get_env('AWS_ACCESS_KEY_ID', 'to list the backup buckets at AWS S3.')
-        get_env('AWS_REGION', 'to list the backup buckets at AWS S3.')
+        management.get_env('AWS_SECRET_ACCESS_KEY', 'to list the backup buckets at AWS S3.')
+        management.get_env('AWS_ACCESS_KEY_ID', 'to list the backup buckets at AWS S3.')
+        management.get_env('AWS_REGION', 'to list the backup buckets at AWS S3.')
         print("Available values for --backup-folder :\n")
         res = ctx.run("aws s3 ls " + backup_bucket_name(from_zone, from_db_instance), pty=True, hide="stdout")
         for line in res.stdout.splitlines():

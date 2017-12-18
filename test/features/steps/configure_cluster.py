@@ -10,24 +10,18 @@ import time
 from datetime import datetime
 from behave import *
 from cluster_under_test import *
-from os import path
-
-project_path = path.dirname(path.dirname(path.dirname(path.dirname(path.abspath(__file__)))))
+from sample_cluster_management import SampleClusterManagement
 
 import sys
 # print("-----------", "\n".join(sys.path), "------------")
 
-def test_inventory():
-    if os.environ.get('RDS_TEST_USE_LIBVIRT'):
-        return path.join(project_path, "test/vagrant_servers_libvirt")
-    else:
-        return path.join(project_path, "test/vagrant_servers_virtualbox")
+management = SampleClusterManagement()
 
 def run_on_host(host, command, timeout=None):
     extra = ""
     if timeout:
         extra += "-B {}".format(timeout)
-    inventory = test_inventory()
+    inventory = management.test_inventory()
     cmd = "ansible -i {inventory} --limit {host} postgres {extra} --become -m shell -a '{command}'".format(**locals())
     run_with_details(cmd)
 
@@ -39,14 +33,8 @@ def run_playbook(context, more_vars=None, interactive=False):
 
     in a separate terminal to observe ansible progress.
     """
-    inventory = test_inventory()
-    playbook = path.join(project_path, "playbooks/sample_configure_cluster.yaml")
-    extra = "--extra-vars 'admin_password={} replicator_password={}'".format(
-            ClusterUnderTest.admin_password, ClusterUnderTest.replicator_password)
-    cmd = "ansible-playbook {playbook} -f 1 -i {inventory} {extra} -vv".format(**locals())
-
+    cmd = management.playbook_cmd()
     logging.info(cmd)
-
     if interactive:
         raw_input("Run\n{}\nThen press enter.".format(cmd))
     else:
@@ -62,14 +50,11 @@ def run_with_details(cmd):
 
     """
     logging.info(cmd)
-
     try:
-        env = dict(os.environ)
-        env['ANSIBLE_FORCE_COLOR'] = 'true'
-        env['ANSIBLE_ROLES_PATH'] = path.dirname(project_path)
         fprefix = "test-{}".format(datetime.now().isoformat('T').replace(':', '_'))
         fdetails = tempfile.NamedTemporaryFile(prefix=fprefix, delete=False)
-        check_call(cmd, shell=True, stdout=fdetails, stderr=fdetails, env=env)
+        check_call(cmd, env=management.playbook_env(),
+                shell=True, stdout=fdetails, stderr=fdetails)
     except subprocess.CalledProcessError:
         fdetails.close()
         logging.warn("Failed. See details in {}".format(fdetails.name))
