@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 from ansible.errors import AnsibleError, AnsibleParserError
@@ -11,9 +12,12 @@ class LookupModule(LookupBase):
         hostvars = args[0]
         res = {}
 
+        def get_pg_var(host, varname, default):
+            return hostvars[host].get('ansible_local', {}).get('pg', {}).get(varname, default)
+
         servers = {}
         for host in hostvars:
-            servers[host] = hostvars[host].get('ansible_local', {}).get('pg', {}).get('state', 'UNKNOWN')
+            servers[host] = get_pg_var(host, 'state', 'UNKNOWN')
 
         if len(servers) == 0:
             raise Exception("No servers found with filter '{}'".format(name_filter()))
@@ -57,9 +61,19 @@ class LookupModule(LookupBase):
 
         slave_upstream = master
 
+        def get_all_hosts_var(hostvars, name):
+            """Get the value of an ansible variable, which is supposedly set to the
+            same value accross all hosts. Ensure the value is consistent."""
+            vals = [variables.get(name) for variables in hostvars.values()]
+            if all(x==vals[0] for x in vals): # also works for empty list
+                return vals[0]
+            else:
+                raise Exception("{} value is inconsistent across hostvars. Must be same for all servers.".format(
+                    name))
+
         # see rolling-cluster-upgrade.txt for details
-        if 'ENFORCE_SLAVE_UPSTREAM' in hostvars[hostvars.keys()[0]]:
-            enforce_upstream = hostvars[hostvars.keys()[0]]['ENFORCE_SLAVE_UPSTREAM']
+        enforce_upstream = get_all_hosts_var(hostvars, 'ENFORCE_SLAVE_UPSTREAM')
+        if enforce_upstream:
             if not enforce_upstream in servers.keys():
                 raise ValueError("Desired ENFORCE_SLAVE_UPSTREAM '{}' is not found in the server list '{}'".format(
                     enforce_upstream, servers.keys()))
@@ -72,10 +86,13 @@ class LookupModule(LookupBase):
                 slave_upstream = enforce_upstream # override
             master = None
 
+        logging.basicConfig(filename='/tmp/compute_postgres_groups.log', filemode='w', level=logging.INFO)
+        logging.info("Will test deactivate")
+
         # see rolling-cluster-upgrade.txt for details
         deactivate = []
-        if 'ENFORCE_MASTER' in hostvars[hostvars.keys()[0]]:
-            enforce_master = hostvars[hostvars.keys()[0]]['ENFORCE_MASTER']
+        enforce_master = get_all_hosts_var(hostvars, 'ENFORCE_MASTER')
+        if enforce_master:
             if not enforce_master in servers.keys():
                 raise ValueError("Desired ENFORCE_MASTER '{}' is not found in the server list '{}'".format(
                     enforce_master, servers.keys()))
@@ -85,12 +102,16 @@ class LookupModule(LookupBase):
                 slave_upstream = enforce_master # override
                 if master in slaves:
                     slaves.remove(master)
+            logging.info("servers:" + str(servers))
             for slave in slaves: # detect obsolete slaves with obsolete upstream
-                conninfo, status = run_remotely(host=slave, command="cat /var/local/postgresql/data/recovery.conf | grep primary_conninfo", timeout=10)
-                match_upstream = re.search(r'host=(\S+)', conninfo)
-                if match_upstream and match_upstream.group(1) != enforce_master:
-                    logging.info('match_upstream:' + match_upstream.group(1))
-                    logging.info('  vs. ' + enforce_master)
+                logging.info("Checking slave: " + slave)
+                upstream = get_pg_var(slave, 'upstream', None)
+                if not upstream:
+                    raise Exception("Failed to detect the configured postgres upstream for slave {}".format(
+                        slave))
+                logging.info("  upstream: {} vs. enforce {}".format(upstream, enforce_master))
+                if upstream and upstream != enforce_master:
+                    logging.info("Upstream: {} vs. {}. Deactivating slave".format(upstream, enforce_master))
                     deactivate.append(slave)
             # clean up slave list
             for x in deactivate:
@@ -184,7 +205,8 @@ class LookupModule(LookupBase):
         'server3'
 
         # Second phase for rolling replication: promote server 3, create additional replica 4
-        >>> g = lookup('compute_postgres_groups', testhostvars(['CONFIGURED_MASTER', 'CONFIGURED_SLAVE', 'CONFIGURED_SLAVE', 'EMPTY_DATA_DIR'], {'ENFORCE_MASTER': 'server3'}))
+        >>> hostv = testhostvars(['CONFIGURED_MASTER', 'CONFIGURED_SLAVE', 'CONFIGURED_SLAVE', 'EMPTY_DATA_DIR'], {'ENFORCE_MASTER': 'server3'})
+        >>> g = lookup('compute_postgres_groups', hostv)
         >>> g.get('postgres-MASTER')
         ['server3']
         >>> g.get('postgres-SLAVES')
