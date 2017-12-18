@@ -11,6 +11,7 @@ class LookupModule(LookupBase):
     def lookup_impl(self, *args):
         hostvars = args[0]
         res = {}
+        logging.basicConfig(filename='/tmp/compute_postgres_groups.log', filemode='w', level=logging.INFO)
 
         def get_pg_var(host, varname, default):
             return hostvars[host].get('ansible_local', {}).get('pg', {}).get(varname, default)
@@ -18,11 +19,11 @@ class LookupModule(LookupBase):
         servers = {}
         for host in hostvars:
             servers[host] = get_pg_var(host, 'state', 'UNKNOWN')
+        logging.info("\n\nLookup compute_postgres_groups")
+        logging.info("Servers:" + str(servers))
 
         if len(servers) == 0:
             raise Exception("No servers found with filter '{}'".format(name_filter()))
-
-        # print(servers)
 
         def detect(servers, state):
             """Returns a list of server names with desired state"""
@@ -86,8 +87,7 @@ class LookupModule(LookupBase):
                 slave_upstream = enforce_upstream # override
             master = None
 
-        logging.basicConfig(filename='/tmp/compute_postgres_groups.log', filemode='w', level=logging.INFO)
-        logging.info("Will test deactivate")
+        logging.info("Checking, which servers to deactivate")
 
         # see rolling-cluster-upgrade.txt for details
         deactivate = []
@@ -102,16 +102,19 @@ class LookupModule(LookupBase):
                 slave_upstream = enforce_master # override
                 if master in slaves:
                     slaves.remove(master)
-            logging.info("servers:" + str(servers))
             for slave in slaves: # detect obsolete slaves with obsolete upstream
-                logging.info("Checking slave: " + slave)
+                logging.info("  Checking slave: " + slave)
                 upstream = get_pg_var(slave, 'upstream', None)
-                if not upstream:
-                    raise Exception("Failed to detect the configured postgres upstream for slave {}".format(
-                        slave))
-                logging.info("  upstream: {} vs. enforce {}".format(upstream, enforce_master))
+                if not upstream and servers[slave] == 'CONFIGURED_SLAVE':
+                    msg = """All *existing* slaves must provide the `upstream` fact
+                    so we can decide, if we need to deactivate them.
+                    Failed to detect the configured postgres upstream for slave {}""".format(
+                        slave)
+                    logging.error("    " + msg)
+                    raise Exception(msg)
+                logging.info("    upstream: {} vs. enforce {}".format(upstream, enforce_master))
                 if upstream and upstream != enforce_master:
-                    logging.info("Upstream: {} vs. {}. Deactivating slave".format(upstream, enforce_master))
+                    logging.info("    Deactivating slave {}".format(slave))
                     deactivate.append(slave)
             # clean up slave list
             for x in deactivate:
@@ -167,9 +170,15 @@ class LookupModule(LookupBase):
         ['server2']
 
         # Detect no state
+        >>> g = lookup('compute_postgres_groups', {'server1': {'ENFORCE_SLAVE_UPSTREAM': True}})
+        Traceback (most recent call last):
+        ...
         Exception: State of some servers could not be detected. To avoid any possibility for 'split brain' execution stopped!
 
         # Detect unknown states
+        >>> g = lookup('compute_postgres_groups', testhostvars(['CONFIGURED_SLAVE', 'UNKNOWN']))
+        Traceback (most recent call last):
+        ...
         Exception: State of some servers could not be detected. To avoid any possibility for 'split brain' execution stopped!
 
         # Detect inconsistency in extra vars
@@ -205,8 +214,15 @@ class LookupModule(LookupBase):
         'server3'
 
         # Second phase for rolling replication: promote server 3, create additional replica 4
-        >>> hostv = testhostvars(['CONFIGURED_MASTER', 'CONFIGURED_SLAVE', 'CONFIGURED_SLAVE', 'EMPTY_DATA_DIR'], {'ENFORCE_MASTER': 'server3'})
-        >>> g = lookup('compute_postgres_groups', hostv)
+        >>> hv = testhostvars(['CONFIGURED_MASTER', 'CONFIGURED_SLAVE', 'CONFIGURED_SLAVE', 'EMPTY_DATA_DIR'], {'ENFORCE_MASTER': 'server3'})
+        >>> g = lookup('compute_postgres_groups', hv)
+        Traceback (most recent call last):
+        ...
+        Exception: All *existing* slaves must provide the `upstream` fact
+                            so we can decide, if we need to deactivate them.
+                            Failed to detect the configured postgres upstream for slave server2
+        >>> hv['server2']['ansible_local']['pg']['upstream'] = 'server1'
+        >>> g = lookup('compute_postgres_groups', hv)
         >>> g.get('postgres-MASTER')
         ['server3']
         >>> g.get('postgres-SLAVES')
@@ -215,19 +231,6 @@ class LookupModule(LookupBase):
         ['server1', 'server2']
         >>> g['slave_upstream']
         'server3'
-        """
-        """
-    'NOT_REACHABLE'
-    'CONFIGURED_SLAVE'
-    'CONFIGURED_MASTER'
-    'EMPTY_DATA_DIR'
-    'DEACTIVATED'
-    'NOT_INITIALIZED'
-        >>> g = lookup('compute_postgres_groups', testhostvars(['EMPTY_DATA_DIR', 'CONFIGURED_SLAVE']))
-        >>> g['postgres-MASTER']
-        ['server2']
-        >>> g['postgres-SLAVES']
-        ['server1']
         """
         ret = []
         return [self.lookup_impl(*terms)]
