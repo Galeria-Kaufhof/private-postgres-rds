@@ -82,10 +82,9 @@ def migrate_to_master(ctx, target_master):
     * configure additional slave, using the just configured slave as upstream
     * promote the first new slave to master, deactivate old severs
     """
-    def provision(more_env_vars):
-        print("DEBUG ****** provision during migration ******* ", more_env_vars)
-        ctx.run(init_pg_servers_play_run(zone, db_instance_name, incremental_backup,
-            more_env_vars=more_env_vars), pty=True, echo=True)
+    def provision(more_vars):
+        print("DEBUG ****** provision during migration ******* ", more_vars)
+        ctx.run(management.playbook_cmd(more_vars), env=management.playbook_env(), pty=True, echo=True)
 
     provision({'ENFORCE_SLAVE_UPSTREAM': target_master}) # step 1, see docstring above
     # provision({'ENFORCE_SLAVE_UPSTREAM': target_master}) # step 2, TODO later: find out,
@@ -159,6 +158,8 @@ def test_create_vagrant_cluster(ctx, recreate=False):
             ctx.run("vagrant destroy --force", pty=True)
         ctx.run("vagrant up pg01 --provision", pty=True)
         ctx.run("vagrant up pg02 --provision", pty=True)
+        ctx.run("vagrant up pg03 --provision", pty=True)
+        ctx.run("vagrant up pg04 --provision", pty=True)
 
 @task
 def test(ctx, test_inventory=None):
