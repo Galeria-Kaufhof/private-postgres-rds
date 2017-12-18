@@ -13,7 +13,6 @@ class ClusterUnderTest:
     and provide your own implementation for defining/storing credentials, like
     in Hashicorp's Vault, or your local git repository.
     """
-    zone = OrganizationConf.test_zone()
     db_instance_name = 'test'
 
     if os.environ.get('RDS_TEST_USE_LIBVIRT'):
@@ -26,7 +25,6 @@ class ClusterUnderTest:
         INITIAL_SLAVE  = "192.168.44.102"
         SERVER3 = "192.168.44.103"
         SERVER4 = "192.168.44.104"
-    service_url = OrganizationConf.service_url(zone, db_instance_name)
     credentials_folder = "test-credentials"
     admin_password = "test-Baequahci6la"
     replicator_password = "test-doh6Ohph1um9"

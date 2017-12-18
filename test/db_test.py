@@ -45,8 +45,7 @@ class DbTest:
             self.loadtest_factor = 1
 
         self.batch = 0
-        self.db = DbRetriable(host=ClusterUnderTest.service_url,
-                dbname="postgres", user="admin", password=ClusterUnderTest.admin_password)
+        self.db = DbRetriable(dbname="postgres", user="admin", password=ClusterUnderTest.admin_password)
 
     def batches(self, n):
         "Global adjustment for the number of batches. Reducing for all tests if user desires."

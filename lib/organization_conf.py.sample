@@ -1,8 +1,0 @@
-#!/usr/bin/env python2
-
-class OrganizationConf(BaseOrganizationConf):
-    @classmethod
-    def self.domain(cls):
-        return "myorg.example.com"
-
-    # see lib/base_organization_conf.py for more options to override

@@ -22,13 +22,12 @@ class DbRetriable:
 
     Usage:
 
-        db = DbRetriable(host="...", dbname="postgres", user="...", password="...")
+        db = DbRetriable(dbname="postgres", user="...", password="...")
 
     """
 
-    def __init__(self, host, **other_connection_args):
+    def __init__(self, **other_connection_args):
         """Saves connection_args so they can be later used for connection retry."""
-        self.host = host
         self.other_connection_args = other_connection_args
         self.ntry = 1
 
