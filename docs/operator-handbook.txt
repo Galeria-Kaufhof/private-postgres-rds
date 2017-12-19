@@ -19,7 +19,7 @@ To increase storage, or to upgrade to a new postgres minor version:
 
 1. create new VM instances
 2. initialize them with ``invoke initialie_server ...``
-3. ``invoke migrate_to_master ...``
+3. ``invoke migrate-to-master ...``
 
 
 ------------------------------

@@ -11,6 +11,7 @@ Feature: add slave to existing master
     When I halt and wipe out the master
     Then reading from postgres service url should fail
     When I initialize postgres cluster to promote slave
+    Then service url should point to INITIAL_SLAVE
     Then reading from postgres service url should work
     Then last committed batch - 2 - should be visible
 

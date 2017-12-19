@@ -7,7 +7,7 @@ Feature: rolling upgrade from master-slave to new master-slave
 
     When application inserts 2 batches of test data
     # When I start continuous db inserts in background
-    When I invoke migrate_to_master --target-master=SERVER3
+    When I invoke migrate-to-master --target-master=SERVER3
     # When I stop continuous db inserts in background
     # Then the last confirmed insert should be visible
     Then service url should point to SERVER3
@@ -26,9 +26,10 @@ Feature: rolling upgrade from master-slave to new master-slave
     # Then also the last confirmed insert + 3 batches should be visible
 
   Scenario: manual, enforced switch-over
+    Then inventory master should consist of SERVER3
     Given a fresh postgres cluster
     When application inserts 3 batches of test data
-    When I invoke migrate_to_master --target-master=SERVER3
+    When I invoke migrate-to-master --target-master=SERVER3
     Then service url should point to SERVER3
     Then reading from postgres service url should work
     Then last committed batch - 3 - should be visible

@@ -170,7 +170,7 @@ def test(ctx, test_inventory=None):
         p = path.join(rds_path, "lookup_plugins", name)
         ctx.run("python " + p, pty=True)
 
-    # run_doctest("compute_postgres_groups.py")
+    run_doctest("compute_postgres_groups.py")
 
     print("=== Starting functional tests - scenarios ===")
     with ctx.cd(path.join(rds_path, 'test')):
@@ -180,13 +180,14 @@ def test(ctx, test_inventory=None):
         else:
             pass # TODO
 
-        ctx.run("behave features/switchover.feature", pty=True)
+        ctx.run("behave features/rolling-upgrade.feature -n 'manual, enforced switch-over'", pty=True)
         return
-        ctx.run("behave add-slave.feature", pty=True)
+        ctx.run("behave features/add-slave.feature", pty=True)
+        ctx.run("behave features/switchover.feature", pty=True)
+
         # ctx.run("behave backup_restore.feature", pty=True)
-        ctx.run("behave credentials.feature", pty=True)
-        ctx.run("behave inventory.feature", pty=True)
-        ctx.run("behave rolling-upgrade.feature", pty=True)
+        ctx.run("behave features/credentials.feature", pty=True)
+        ctx.run("behave features/inventory.feature", pty=True)
 
         return
         ctx.run("behave features", pty=True)

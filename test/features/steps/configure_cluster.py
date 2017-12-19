@@ -120,16 +120,13 @@ def wipe_out(context, node):
 @given(u'a fresh postgres cluster')
 def create_fresh_cluster(context):
     ClusterUnderTest.clean_service_urls()
-    # empty_servers(context, "master and slaves")
-    empty_servers(context, "master")
-    empty_servers(context, "slave")
+    empty_servers(context, "master and slaves")
     init_pg_servers(context, "get new cluster")
     context.dbt.recreate_tables()
 
-@when(u'I invoke migrate_to_master --target-master={target_master}')
+@when(u'I invoke migrate-to-master --target-master={target_master}')
 def step_impl(context, target_master):
-    cmd = "invoke migrate_to_master {} {} --target-master={}".format(
-            ClusterUnderTest.zone, ClusterUnderTest.db_instance_name, host_for_node_name(target_master))
+    cmd = "invoke migrate-to-master --target-master={}".format(host_for_node_name(target_master))
     run_with_details(cmd)
 
 @then(u'service url should point to {node}')
@@ -160,12 +157,11 @@ def step_impl(context, node):
             pass # ignore and retry
 
 def get_inventory(context, hostgroup):
-    cmd = "ZONE={} DB_INSTANCE_NAME={} {} ansible {} -i configure/pg-cluster-inventory.py --list-hosts"
+    cmd = "ansible postgres -i {} --list-hosts -m setup -a 'filter=ansible_local' -o".format(management.test_inventory())
+    sys.stderr.write(cmd)
+    sys.stderr.flush()
     try:
-        return check_output(cmd.format(
-            ClusterUnderTest.zone, ClusterUnderTest.db_instance_name,
-            context.extra_inventory_params, hostgroup),
-            stderr=subprocess.STDOUT, shell=True)
+        return check_output(cmd, stderr=subprocess.STDOUT, shell=True)
     except subprocess.CalledProcessError as ex:
         print(ex.output)
         print(open("/tmp/inventory.log").read())
