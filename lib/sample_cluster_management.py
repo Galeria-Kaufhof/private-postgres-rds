@@ -1,7 +1,10 @@
 #!/usr/bin/env python2
+import json
 import os
+import sys
 from os import path
 from cluster_under_test import *
+from collections import defaultdict
 
 project_path = path.dirname(path.dirname(path.abspath(__file__)))
 
@@ -46,3 +49,31 @@ class SampleClusterManagement():
         else:
             raise ValueError("You need to provide {} env var {}".format(key, reason))
 
+    def get_inventory(self, env=dict(os.environ)):
+        """Return list of host-information. Every entry contains hostname and
+        all the local postgres-related facts, e.g. upstream, DB size etc."""
+        inventory = self.test_inventory()
+        cmd = "ansible postgres --become --user root -f 14 -i {inventory} -m setup -a 'filter=ansible_local' -o".format(**locals())
+        print(cmd); sys.stdout.flush()
+        try:
+            out = subprocess.check_output(cmd, env=env, shell=True)
+        except subprocess.CalledProcessError as ex: # ignore, if some hosts not reachable
+            out = ex.output
+        hosts = []
+        for line in out.strip().split("\n"):
+            try:
+                # example line:
+                # 10preprod0000-postgres-media-1.10preprod0000.gkh-setu.de | SUCCESS => {"ansible_facts": {"ansible_local": {"pg": {"state": "CONFIGURED_SLAVE"}}}, "changed": false}
+                left, json_data = line.split(" => ")
+                full_hostname, success = left.split(" ", 1)
+    #~            coordinates = parse_hostname(full_hostname)
+    #~            cluster = "{stage}{tenant}-{serverrole}".format(**coordinates)
+    #~            order = "{stage}{tenant}-{serverrole}-{dc}-{number}".format(**coordinates)
+    #~            hostname = full_hostname # full_hostname.split(".")[0] # e.g. 10preprod0000-postgres-media-1.10preprod0000.gkh-setu.de => 10preprod0000-postgres-media-1
+                data = json.loads(json_data)
+                pg = data['ansible_facts']['ansible_local']['pg']
+                hosts.append(defaultdict(lambda: '-', pg, hostname=full_hostname, order=full_hostname)) # cluster=cluster, order=order))
+            except Exception as ex:
+                print("Error '{}' processing line '{}'".format(ex, line))
+                pass # just ignore this line/host - process remaining
+        return hosts

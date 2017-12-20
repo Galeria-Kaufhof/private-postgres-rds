@@ -19,21 +19,22 @@ Feature: rolling upgrade from master-slave to new master-slave
     When I halt and wipe out the SERVER3
     When I initialize postgres cluster to promote slave
     Then service url should point to SERVER4
-    Then inventory master should consist of SERVER4
-    Then inventory slaves should consist of SERVER3
+    Then inventory CONFIGURED_MASTER should consist of SERVER4
+    Then inventory CONFIGURED_SLAVE should consist of SERVER3
     Then reading from postgres service url should work
     Then last committed batch - 3 - should be visible
     # Then also the last confirmed insert + 3 batches should be visible
 
   Scenario: manual, enforced switch-over
-    Then inventory master should consist of SERVER3
+    Then inventory CONFIGURED_SLAVE should be empty
+    Then inventory CONFIGURED_MASTER should consist of SERVER3
     Given a fresh postgres cluster
     When application inserts 3 batches of test data
     When I invoke migrate-to-master --target-master=SERVER3
     Then service url should point to SERVER3
     Then reading from postgres service url should work
     Then last committed batch - 3 - should be visible
-    Then inventory master should consist of SERVER3
-    Then inventory slaves should be empty
-    Then inventory deactivated should consist of INITIAL_MASTER, INITIAL_SLAVE, SERVER4
+    Then inventory CONFIGURED_MASTER should consist of SERVER3
+    Then inventory CONFIGURED_SLAVE should be empty
+    Then inventory DEACTIVATED should consist of INITIAL_MASTER, INITIAL_SLAVE, SERVER4
 

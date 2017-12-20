@@ -185,20 +185,18 @@ def assert_host_lists(expected_hosts, actual_hosts):
     t.assertEqual(" ".join(expected_hosts), " ".join(actual_hosts))
 
 @then(u'inventory {hostgroup} should consist of {expected_elements}')
-def step_impl(context, hostgroup, expected_elements):
-    expected_hosts = [getattr(ClusterUnderTest, exp)  for exp in expected_elements.split(', ')]
-    inv = get_inventory(context, hostgroup)
-    # Example output:
-    #   hosts (2):
-    #     myzone-postgres-test-2.mydomain.example
-    #     myzone-postgres-test-3.mydomain.example
-    actual_hosts =  [s.strip() for s in inv.split("\n")[1:] if s]
-    assert_host_lists(expected_hosts, actual_hosts)
+def assert_hostgroup(context, hostgroup, expected_elements):
+    if expected_elements:
+        expected_hosts = [getattr(ClusterUnderTest, exp)  for exp in expected_elements.split(', ')]
+    else:
+        expected_hosts = []
+    actual_hosts = []
+    for hostdata in management.get_inventory():
+        if hostdata['state'] == hostgroup:
+            actual_hosts.append(hostdata['hostname'])
+    assert_host_lists(expected_hosts, sorted(actual_hosts))
 
 @then(u'inventory {hostgroup} should be empty')
-def step_impl(context, hostgroup):
-    expected_hosts = []
-    inv = get_inventory(context, hostgroup)
-    print(inv)
-    t.assertRegexpMatches(inv, '\[WARNING\]: No hosts matched, nothing to do')
+def assert_hostgroup_empty(context, hostgroup):
+    assert_hostgroup(context, hostgroup, None)
 
