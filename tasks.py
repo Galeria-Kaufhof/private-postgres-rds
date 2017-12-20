@@ -163,8 +163,11 @@ def test_create_vagrant_cluster(ctx, recreate=False):
         ctx.run("vagrant up pg03 --provision", pty=True)
         ctx.run("vagrant up pg04 --provision", pty=True)
 
-@task
-def test(ctx, test_inventory=None):
+@task(help={'scenario': """a single feature or even single scenario to run. Examples:
+    --scenario "features/switchover.feature"
+    --scenario "features/rolling-upgrade.feature -n 'manual, enforced switch-over'"
+"""})
+def test(ctx, scenario=None):
     '''Run functional tests against a test cluster. Create vagrant test cluster if needed.'''
 
     print("=== Starting unit tests - doctest ===")
@@ -176,21 +179,17 @@ def test(ctx, test_inventory=None):
 
     print("=== Starting functional tests - scenarios ===")
     with ctx.cd(path.join(rds_path, 'test')):
-        if test_inventory == None: # use vagrant
-            # ctx.run("vagrant status")
-            pass
+        if scenario:
+            ctx.run("behave {}".format(scenario), pty=True)
         else:
-            pass # TODO
+            ctx.run("behave features/add-slave.feature", pty=True)
+            ctx.run("behave features/switchover.feature", pty=True)
+            ctx.run("behave features/rolling-upgrade.feature", pty=True)
+            return
 
-        ctx.run("behave features/add-slave.feature", pty=True)
-        ctx.run("behave features/switchover.feature", pty=True)
-        ctx.run("behave features/rolling-upgrade.feature", pty=True)
-        return
+            # ctx.run("behave backup_restore.feature", pty=True)
+            ctx.run("behave features/credentials.feature", pty=True)
+            ctx.run("behave features/inventory.feature", pty=True)
 
-        ctx.run("behave features/rolling-upgrade.feature -n 'manual, enforced switch-over'", pty=True)
-        # ctx.run("behave backup_restore.feature", pty=True)
-        ctx.run("behave features/credentials.feature", pty=True)
-        ctx.run("behave features/inventory.feature", pty=True)
-
-        return
-        ctx.run("behave features", pty=True)
+            return
+            ctx.run("behave features", pty=True)
