@@ -186,10 +186,11 @@ def test(ctx, scenario=None):
             ctx.run("behave features/switchover.feature", pty=True)
             ctx.run("behave features/rolling-upgrade.feature", pty=True)
             ctx.run("behave features/inventory.feature", pty=True)
+            ctx.run("behave features/credentials.feature", pty=True)
             return
 
             # ctx.run("behave backup_restore.feature", pty=True)
-            ctx.run("behave features/credentials.feature", pty=True)
 
             return
+            # TODO replace by generic call once all test scenarios work again
             ctx.run("behave features", pty=True)

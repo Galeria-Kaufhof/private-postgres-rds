@@ -58,7 +58,15 @@ def step_impl(context, password):
 
 @then(u'user can access database with password {password}')
 def step_impl(context, password):
-    db = DbRetriable(host=ClusterUnderTest.service_url,
-            dbname="postgres", user="admin", password=password)
+    db = DbRetriable(dbname="postgres", user="admin", password=password)
     db.execute("select now();", retry=False)
+
+@then(u'user can not access database with password {password}')
+def step_impl(context, password):
+    db = DbRetriable(dbname="postgres", user="admin", password=password)
+    try:
+        db.execute("select now();", retry=False)
+    except psycopg2.OperationalError as ex:
+        return
+    raise Exception("DB access expected to fail")
 
