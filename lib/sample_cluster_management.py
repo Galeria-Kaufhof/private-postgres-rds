@@ -50,10 +50,9 @@ class SampleClusterManagement():
         else:
             raise ValueError("You need to provide {} env var {}".format(key, reason))
 
-    def get_host_info(self, env=dict(os.environ)):
+    def get_host_info(self, inventory, env=dict(os.environ)):
         """Return list of host-information. Every entry contains hostname and
         all the local postgres-related facts, e.g. upstream, DB size etc."""
-        inventory = self.test_inventory()
         cmd = "ansible postgres --become --user root -f 14 -i {inventory} -m setup -a 'filter=ansible_local' -o".format(**locals())
         print(cmd); sys.stdout.flush()
         try:

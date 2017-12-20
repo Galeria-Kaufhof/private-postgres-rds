@@ -147,7 +147,9 @@ def initialize_servers(ctx, zone, db_instance_name):
 @task
 def info_list(ctx):
     '''List all postgres related openstack VM instances.'''
-    management.info_print_overview(management.get_host_info(env=dict(os.environ)))
+    management.info_print_overview(management.get_host_info(
+        inventory=management.test_inventory(),
+        env=dict(os.environ)))
 
 @task
 def test_create_vagrant_cluster(ctx, recreate=False):

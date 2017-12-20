@@ -180,7 +180,7 @@ def assert_hostgroup(context, hostgroup, expected_elements):
     else:
         expected_hosts = []
     actual_hosts = []
-    for hostdata in management.get_host_info():
+    for hostdata in management.get_host_info(inventory=management.test_inventory()):
         if hostdata['state'] == hostgroup:
             actual_hosts.append(hostdata['hostname'])
     assert_host_lists(expected_hosts, sorted(actual_hosts))
