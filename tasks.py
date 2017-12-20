@@ -185,11 +185,11 @@ def test(ctx, scenario=None):
             ctx.run("behave features/add-slave.feature", pty=True)
             ctx.run("behave features/switchover.feature", pty=True)
             ctx.run("behave features/rolling-upgrade.feature", pty=True)
+            ctx.run("behave features/inventory.feature", pty=True)
             return
 
             # ctx.run("behave backup_restore.feature", pty=True)
             ctx.run("behave features/credentials.feature", pty=True)
-            ctx.run("behave features/inventory.feature", pty=True)
 
             return
             ctx.run("behave features", pty=True)

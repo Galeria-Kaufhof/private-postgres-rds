@@ -60,9 +60,17 @@ def run_with_details(cmd):
         logging.warn("Failed. See details in {}".format(fdetails.name))
         raise
 
-@when(u'I initialize postgres cluster to {goal}')
+@step(u'I initialize postgres cluster to {goal}')
 def init_pg_servers(context, goal):
     run_playbook(context) # , interactive=True)
+
+@then(u'cluster initialization should fail')
+def init_pg_servers_should_fail(context):
+    try:
+        run_playbook(context) # , interactive=True)
+    except subprocess.CalledProcessError as ex:
+        return # failed as expected
+    raise Exception("Cluster initialization supposed to fail due to some servers are anreachable")
 
 @when(u'I restore backup to a postgres cluster')
 def step_impl(context):
@@ -144,14 +152,18 @@ def step_impl(context, number, goal):
 
 @when(u'I reboot the {node}')
 def step_impl(context, node):
-    run_on_host(host=host_for_node_name(node), command="reboot")
+    try:
+        run_on_host(host=host_for_node_name(node), command="reboot")
+    except subprocess.CalledProcessError as ex:
+        pass # reboot via ansible returns non-zero code due to SSH connection closed. Ignore
+    time.sleep(1) # let reboot begin
 
 @when('I wait for {node} to finish reboot')
 def step_impl(context, node):
     start = time.time()
     while time.time() - start < 120:
         try:
-            run_on_host(host=host_for_node_name(node), timeout=10, command="uptime")
+            run_on_host(host=host_for_node_name(node), timeout=5, command="uptime")
             break
         except Exception:
             pass # ignore and retry
@@ -166,8 +178,7 @@ def step_impl(context, extras):
 
 @then(u'inventory {hostgroup} should fail')
 def step_impl(context, hostgroup):
-    with t.assertRaises(subprocess.CalledProcessError):
-        get_inventory(context, hostgroup)
+    assert_hostgroup(context, hostgroup, None)
 
 def assert_host_lists(expected_hosts, actual_hosts):
     """Produces more readable output than default assertEqual for list arguments"""
