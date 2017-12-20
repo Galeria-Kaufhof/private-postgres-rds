@@ -2,6 +2,7 @@
 import json
 import os
 import sys
+from tabulate import tabulate
 from os import path
 from cluster_under_test import *
 from collections import defaultdict
@@ -49,7 +50,7 @@ class SampleClusterManagement():
         else:
             raise ValueError("You need to provide {} env var {}".format(key, reason))
 
-    def get_inventory(self, env=dict(os.environ)):
+    def get_host_info(self, env=dict(os.environ)):
         """Return list of host-information. Every entry contains hostname and
         all the local postgres-related facts, e.g. upstream, DB size etc."""
         inventory = self.test_inventory()
@@ -77,3 +78,20 @@ class SampleClusterManagement():
                 print("Error '{}' processing line '{}'".format(ex, line))
                 pass # just ignore this line/host - process remaining
         return hosts
+
+    def info_print_overview(self, hosts_info): # hosts_info - array of host attributes
+        srt = sorted(hosts_info, key=lambda h: h['order'])
+        table = []
+        for pg in srt:
+            running = pg['running']
+            if pg['upstream']:
+                running += "\n" + pg['upstream']
+            table.append([
+                pg['hostname'], pg['state'], pg['mb_data_space'], pg['mb_db'],
+                pg['mb_xlog'], pg['wal_keep'], running,
+                pg['last_xlog'], pg['repl_delay'][0:13] ])
+        print(tabulate(table, tablefmt="psql",
+            headers=[
+                "hostname", "state", "space\nMB", "base\nMB", "xlog\nMB",
+                "WAL\nkeep", "running /\nupstream", "xlog\nposition", "repl\ndelay"]))
+

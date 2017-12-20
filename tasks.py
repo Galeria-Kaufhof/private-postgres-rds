@@ -147,7 +147,7 @@ def initialize_servers(ctx, zone, db_instance_name):
 @task
 def info_list(ctx):
     '''List all postgres related openstack VM instances.'''
-    ctx.run("RDS_ALL_ZONES=true configure/pg-cluster-inventory.py")
+    management.info_print_overview(management.get_host_info(env=dict(os.environ)))
 
 @task
 def test_create_vagrant_cluster(ctx, recreate=False):
@@ -180,11 +180,12 @@ def test(ctx, test_inventory=None):
         else:
             pass # TODO
 
-        ctx.run("behave features/rolling-upgrade.feature -n 'manual, enforced switch-over'", pty=True)
-        return
         ctx.run("behave features/add-slave.feature", pty=True)
         ctx.run("behave features/switchover.feature", pty=True)
+        ctx.run("behave features/rolling-upgrade.feature", pty=True)
+        return
 
+        ctx.run("behave features/rolling-upgrade.feature -n 'manual, enforced switch-over'", pty=True)
         # ctx.run("behave backup_restore.feature", pty=True)
         ctx.run("behave features/credentials.feature", pty=True)
         ctx.run("behave features/inventory.feature", pty=True)

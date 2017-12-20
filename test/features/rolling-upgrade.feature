@@ -26,8 +26,6 @@ Feature: rolling upgrade from master-slave to new master-slave
     # Then also the last confirmed insert + 3 batches should be visible
 
   Scenario: manual, enforced switch-over
-    Then inventory CONFIGURED_SLAVE should be empty
-    Then inventory CONFIGURED_MASTER should consist of SERVER3
     Given a fresh postgres cluster
     When application inserts 3 batches of test data
     When I invoke migrate-to-master --target-master=SERVER3

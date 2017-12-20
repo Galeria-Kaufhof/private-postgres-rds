@@ -156,17 +156,6 @@ def step_impl(context, node):
         except Exception:
             pass # ignore and retry
 
-def get_inventory(context, hostgroup):
-    cmd = "ansible postgres -i {} --list-hosts -m setup -a 'filter=ansible_local' -o".format(management.test_inventory())
-    sys.stderr.write(cmd)
-    sys.stderr.flush()
-    try:
-        return check_output(cmd, stderr=subprocess.STDOUT, shell=True)
-    except subprocess.CalledProcessError as ex:
-        print(ex.output)
-        print(open("/tmp/inventory.log").read())
-        raise
-
 @when(u"I use inventory extra params '{extras}'")
 def step_impl(context, extras):
     extras = extras.replace('_SERVER4_', ClusterUnderTest.SERVER4)
@@ -191,7 +180,7 @@ def assert_hostgroup(context, hostgroup, expected_elements):
     else:
         expected_hosts = []
     actual_hosts = []
-    for hostdata in management.get_inventory():
+    for hostdata in management.get_host_info():
         if hostdata['state'] == hostgroup:
             actual_hosts.append(hostdata['hostname'])
     assert_host_lists(expected_hosts, sorted(actual_hosts))
