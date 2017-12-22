@@ -5,3 +5,4 @@ pyenv
 docs/_build
 .vagrant
 test/state
+private_postgres_rds.egg-info/
