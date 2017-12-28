@@ -63,16 +63,12 @@ class SampleClusterManagement():
         for line in out.strip().split("\n"):
             try:
                 # example line:
-                # 10preprod0000-postgres-media-1.10preprod0000.gkh-setu.de | SUCCESS => {"ansible_facts": {"ansible_local": {"pg": {"state": "CONFIGURED_SLAVE"}}}, "changed": false}
+                # hostname.example.com | SUCCESS => {"ansible_facts": {"ansible_local": {"pg": {"state": "CONFIGURED_SLAVE"}}}, "changed": false}
                 left, json_data = line.split(" => ")
                 full_hostname, success = left.split(" ", 1)
-    #~            coordinates = parse_hostname(full_hostname)
-    #~            cluster = "{stage}{tenant}-{serverrole}".format(**coordinates)
-    #~            order = "{stage}{tenant}-{serverrole}-{dc}-{number}".format(**coordinates)
-    #~            hostname = full_hostname # full_hostname.split(".")[0] # e.g. 10preprod0000-postgres-media-1.10preprod0000.gkh-setu.de => 10preprod0000-postgres-media-1
                 data = json.loads(json_data)
                 pg = data['ansible_facts']['ansible_local']['pg']
-                hosts.append(defaultdict(lambda: '-', pg, hostname=full_hostname, order=full_hostname)) # cluster=cluster, order=order))
+                hosts.append(defaultdict(lambda: '-', pg, hostname=full_hostname, order=full_hostname))
             except Exception as ex:
                 print("Error '{}' processing line '{}'".format(ex, line))
                 pass # just ignore this line/host - process remaining
@@ -83,7 +79,7 @@ class SampleClusterManagement():
         table = []
         for pg in srt:
             running = pg['running']
-            if pg['upstream']:
+            if pg['upstream'] != '-':
                 running += "\n" + pg['upstream']
             table.append([
                 pg['hostname'], pg['state'], pg['mb_data_space'], pg['mb_db'],
