@@ -15,7 +15,7 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
 
 setup(
     name='private-postgres-rds',
-    version='1.0.0dev1',
+    version='1.0.dev1',
     description='Private cloud / on-premises relational database service',
     long_description=long_description,
     url='http://private-postgres-rds.readthedocs.io',
@@ -35,15 +35,4 @@ setup(
         'egg': ['twine','pylint','setuptools'],
         'ansible': ['ansible','yamllint'],
     },
-    #cmdclass={
-        #'register': register,
-        #'upload': upload,
-    #},
-
-    entry_points={
-        'console_scripts': [
-            'rdsctl=pengrds.rdsctl:program.run',
-            'rdsbuild=pengrds.rdsbuild:program.run',
-            ],
-        },
     )
