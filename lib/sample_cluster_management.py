@@ -78,15 +78,16 @@ class SampleClusterManagement():
         srt = sorted(hosts_info, key=lambda h: h['order'])
         table = []
         for pg in srt:
+            hostname = pg['hostname']
             running = pg['running']
-            if pg['upstream'] != '-':
-                running += "\n" + pg['upstream']
+            if pg['upstream'] and pg['upstream'] != '-':
+                hostname += "\n +" + pg['upstream']
             table.append([
-                pg['hostname'], pg['state'], pg['mb_data_space'], pg['mb_db'],
+                hostname, pg['state'], pg['mb_data_space'], pg['mb_db'],
                 pg['mb_xlog'], pg['wal_keep'], running,
                 pg['last_xlog'], pg['repl_delay'][0:13] ])
         print(tabulate(table, tablefmt="psql",
             headers=[
-                "hostname", "state", "space\nMB", "base\nMB", "xlog\nMB",
-                "WAL\nkeep", "running /\nupstream", "xlog\nposition", "repl\ndelay"]))
+                "hostname / upstream", "state", "space\nMB", "base\nMB", "xlog\nMB",
+                "WAL\nkeep", "running", "xlog\nposition", "repl\ndelay"]))
 
