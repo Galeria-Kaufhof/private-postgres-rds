@@ -54,13 +54,20 @@ def get_size(start_path = '.'):
     return total_size
 
 def detect_size_mb(subdir):
-    return get_size(path.join( DATA_DIR, subdir))/1024/1024
+    return get_size(path.join(DATA_DIR, subdir))/1024/1024
 
 def run_sql(statement):
     """Run an SQL statement returning single record and return results as tuple"""
     out = subprocess.check_output("""sudo -iu postgres psql -t -c "{}" ; exit 0 """.format(statement), shell=True)
     return [v.strip() for v in out.split("|")]
 
+def detect_version():
+    out = subprocess.check_output("/usr/local/bin/pg_config --version", shell=True)
+    return out.strip().split(" ")[1]
+
+def detect_reboot():
+    if os.path.isfile("/run/reboot-required"):
+        return "REBOOT!"
 def detect_wal_setting():
     return run_sql("""SELECT setting FROM pg_settings WHERE name = 'wal_keep_segments';""")[0]
 
@@ -106,6 +113,8 @@ if __name__ == '__main__':
         running, last_xlog, repl_delay = check_replication()
         print json.dumps({
             "state": "{0}".format(detect_state()),
+            "version": detect_version(),
+            "reboot": detect_reboot(),
             "mb_db": detect_size_mb("base"),
             "mb_xlog": detect_size_mb("pg_xlog"),
             "mb_data_space": detect_data_space_mb(),

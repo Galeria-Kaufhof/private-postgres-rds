@@ -48,7 +48,8 @@ class SampleClusterManagement():
         if key in os.environ:
             return os.environ[key]
         else:
-            raise ValueError("You need to provide {} env var {}".format(key, reason))
+            print("You need to provide {} env var {}".format(key, reason))
+            sys.exit(1)
 
     def get_host_info(self, inventory, env=dict(os.environ)):
         """Return list of host-information. Every entry contains hostname and
@@ -83,11 +84,13 @@ class SampleClusterManagement():
             if pg['upstream'] and pg['upstream'] != '-':
                 hostname += "\n +" + pg['upstream']
             table.append([
-                hostname, pg['state'], pg['mb_data_space'], pg['mb_db'],
+                hostname, pg['state'],
+                pg['version'], pg['reboot'],
+                pg['mb_data_space'], pg['mb_db'],
                 pg['mb_xlog'], pg['wal_keep'], running,
                 pg['last_xlog'], pg['repl_delay'][0:13] ])
         print(tabulate(table, tablefmt="psql",
             headers=[
-                "hostname / upstream", "state", "space\nMB", "base\nMB", "xlog\nMB",
+                "hostname / upstream", "state", "ver", "", "space\nMB", "base\nMB", "xlog\nMB",
                 "WAL\nkeep", "running", "xlog\nposition", "repl\ndelay"]))
 
