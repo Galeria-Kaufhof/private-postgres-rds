@@ -1,7 +1,6 @@
 import logging
 import subprocess
 import unittest
-from conf import OrganizationConf
 import os
 from os import path
 project_path = path.dirname(path.dirname(path.abspath(__file__)))
