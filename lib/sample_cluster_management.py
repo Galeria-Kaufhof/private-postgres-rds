@@ -76,21 +76,45 @@ class SampleClusterManagement():
         return hosts
 
     def info_print_overview(self, hosts_info): # hosts_info - array of host attributes
+
+        class Cluster:
+            def __init__(self, name):
+                self.hosts = []
+                self.name = name
+
+        clusters = {}
         srt = sorted(hosts_info, key=lambda h: h['order'])
-        table = []
         for pg in srt:
-            hostname = pg['hostname']
-            running = pg['running']
             if pg['upstream'] and pg['upstream'] != '-':
-                hostname += "\n +" + pg['upstream']
-            table.append([
-                hostname, pg['state'],
-                pg['version'], pg['reboot'],
-                pg['mb_data_space'], pg['mb_db'],
-                pg['mb_xlog'], pg['wal_keep'], running,
-                pg['last_xlog'], pg['repl_delay'][0:13] ])
+                name = pg['upstream']
+            else:
+                name = pg['hostname']
+            c = clusters.setdefault(name, Cluster(name))
+            c.hosts.append(pg)
+
+        table = []
+        for name in sorted(clusters.keys()):
+            c = clusters[name]
+            xlog_pos = []
+            for pg in c.hosts:
+                hostname = pg['hostname']
+                running = pg['running']
+                table.append([
+                    hostname, pg['state'],
+                    pg['version'], pg['reboot'],
+                    pg['mb_data_space'], pg['mb_db'],
+                    pg['mb_xlog'], pg['wal_keep'], running,
+                    pg['last_xlog'], pg['repl_delay'][0:13] ])
+                xlog_pos.append(pg['last_xlog'])
+
+            if all(x==xlog_pos[0] for x in xlog_pos):
+                sync = '-IN SYNC-'
+            else:
+                sync = '*** DELAY ***'
+            table.append(['', '', '-----', '', None, None, None, None, sync])
+
         print(tabulate(table, tablefmt="psql",
             headers=[
                 "hostname / upstream", "state", "ver", "", "space\nMB", "base\nMB", "xlog\nMB",
-                "WAL\nkeep", "running", "xlog\nposition", "repl\ndelay"]))
+                "WAL\nkeep", "running", "xlog\nposition", "last\nchange"]))
 
