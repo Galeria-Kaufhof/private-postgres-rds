@@ -4,13 +4,14 @@
   register: data_folder
 
 # skip whole execution if postgres is already configured and running, i.e. data folder exists
-
 - name: Install prerequisites - required for creating users etc.
-  apt: name={{item}} state=present
+  apt:
+    name: "{{item}}"
+    state: present
+    update_cache: true
   with_items:
     - libpq-dev
     - python-psycopg2
-    - mc
     - awscli
     - debian-goodies # for checkrestart
       # - postgresql-client
