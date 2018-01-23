@@ -68,7 +68,7 @@
     - Reload systemd daemon
 
 - name: Create postgres user
-  user: name=postgres state=present shell="/bin/bash" comment="PostgreSQL administrator"
+  user: name=postgres system=yes state=present shell="/bin/bash" comment="PostgreSQL administrator"
   when: data_folder.stat.exists == False
 
 - name: Create postgres data folder
