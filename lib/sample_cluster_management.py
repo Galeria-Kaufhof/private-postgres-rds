@@ -103,7 +103,8 @@ class SampleClusterManagement():
                     hostname, pg['state'],
                     pg['version'], pg['reboot'],
                     pg['mb_data_space'], pg['mb_db'],
-                    pg['mb_xlog'], pg['wal_keep'], running,
+                    pg['mb_xlog'], pg['wal_keep'], pg['active_connections'],
+                    running,
                     pg['last_xlog'], pg['repl_delay'][0:13] ])
                 xlog_pos.append(pg['last_xlog'])
 
@@ -111,10 +112,10 @@ class SampleClusterManagement():
                 sync = '-IN SYNC-'
             else:
                 sync = '*** DELAY ***'
-            table.append(['', '', '-----', '', None, None, None, None, sync])
+            table.append(['', '', '-----', '', None, None, None, None, None, sync])
 
         print(tabulate(table, tablefmt="psql",
             headers=[
                 "hostname / upstream", "state", "ver", "", "space\nMB", "base\nMB", "xlog\nMB",
-                "WAL\nkeep", "running", "xlog\nposition", "last\nchange"]))
+                "WAL\nkeep", "act\ncon", "running", "xlog\nposition", "last\nchange"]))
 

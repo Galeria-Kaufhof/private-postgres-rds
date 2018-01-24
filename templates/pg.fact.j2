@@ -68,8 +68,12 @@ def detect_version():
 def detect_reboot():
     if os.path.isfile("/run/reboot-required"):
         return "REBOOT!"
+
 def detect_wal_setting():
     return run_sql("""SELECT setting FROM pg_settings WHERE name = 'wal_keep_segments';""")[0]
+
+def detect_connections():
+    return run_sql("""SELECT count(*) FROM pg_stat_activity;""")[0]
 
 def check_replication():
     try:
@@ -119,6 +123,7 @@ if __name__ == '__main__':
             "mb_xlog": detect_size_mb("pg_xlog"),
             "mb_data_space": detect_data_space_mb(),
             "wal_keep": detect_wal_setting(),
+            "active_connections": detect_connections(),
             "running": running,
             "last_xlog": last_xlog,
             "repl_delay": repl_delay,
