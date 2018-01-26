@@ -26,6 +26,18 @@
       become: true
       when: not configuration_file.stat.exists
 
+    # For all cases: new master, just promoted to master or an old existing master
+    - name: Copy postgres configuration file
+      template:
+        src: "../templates/postgresql.conf.j2"
+        dest: "/var/local/postgresql/data/postgresql.conf"
+      notify: Restart postgres
+    - name: Copy postgres hba file
+      template:
+        src: "../templates/pg_hba.conf.j2"
+        dest: "/var/local/postgresql/data/pg_hba.conf"
+      notify: Restart postgres
+
     - name: Check if replication is configured
       stat: path=/var/local/postgresql/data/recovery.conf
       register: recovery_configuration_file
