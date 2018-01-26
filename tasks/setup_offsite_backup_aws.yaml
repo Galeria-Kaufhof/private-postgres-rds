@@ -1,0 +1,41 @@
+---
+- name: Check required variables
+  fail:
+    msg: "Aborting, setup_offsite_backup_aws requires '{{ item }}'."
+  when: "(item is undefined) or (item == None) or (item | trim == '')"
+  with_items:
+    - aws_credentials_sh # tiny shell file containing export for variables:
+    # AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_REGION AWS_DEFAULT_REGION
+    - backup_bucket_name
+
+- name: Create log directory
+  file:
+    state: directory
+    mode: 0755
+    owner: postgres
+    path: "/var/local/postgresql/log"
+
+- name: Copy backup bucket credentials
+  copy: dest=/var/local/postgresql/aws_backup.credentials.sh
+    src="{{ aws_credentials_sh }}"
+
+- name: Create backup script
+  template:
+    src: "full_backup_to_aws.sh.j2"
+    dest: "/var/local/postgresql/full_backup_to_aws.sh"
+    mode: 0555
+
+- name: Create archive log script
+  template:
+    src: "archive_xlog_to_aws.sh.j2"
+    dest: "/var/local/postgresql/archive_xlog_to_aws.sh"
+    mode: 0555
+
+- name: Configure full backup
+  cron:
+    name: postgres full backup
+    minute: "{{ 59 |random}}"
+    hour: "3"
+    user: postgres
+    job: "/var/local/postgresql/full_backup_to_aws.sh >>/var/local/postgresql/log/backup.log 2>&1"
+
