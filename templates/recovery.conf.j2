@@ -1,0 +1,2 @@
+standby_mode = 'on'
+primary_conninfo = 'user=replicator password={{ replicator_password }} host={{ cluster_config['slave_upstream'] }} port=5432 sslmode=prefer sslcompression=1 krbsrvname=postgres'

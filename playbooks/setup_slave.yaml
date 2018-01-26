@@ -21,10 +21,18 @@
       # Replication will take longer then.
       #
       # Possible extension: use --max-rate to throttle replication, e.g. `--max-rate 20000` for 20 MB/s
-      shell: PGPASSFILE=/var/local/postgresql/replicator-pgpass.conf pg_basebackup -D /var/local/postgresql/data/ -h {{ cluster_config['slave_upstream'] }} -U replicator --progress -R -w --xlog-method=stream --checkpoint=fast
+      shell: PGPASSFILE=/var/local/postgresql/replicator-pgpass.conf pg_basebackup -D /var/local/postgresql/data/ -h {{ cluster_config['slave_upstream'] }} -U replicator --progress -w --xlog-method=stream --checkpoint=fast
       become_user: postgres
       become: true
       when: not configuration_file.stat.exists
+
+    - name: Set up replicator credentials
+      template:
+        src: "../templates/recovery.conf.j2"
+        dest: "/var/local/postgresql/data/recovery.conf"
+        owner: postgres
+        mode: 0600
+      notify: Restart postgres
 
     # For all cases: new master, just promoted to master or an old existing master
     - name: Copy postgres configuration file
