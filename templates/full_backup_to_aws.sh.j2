@@ -22,7 +22,7 @@ echo "BUCKET_FOLDER=s3://$BUCKET/$FOLDER" > /var/local/postgresql/backup_bucket_
 # Note: remove `--checkpoint=fast` if backup negatively impacts the request performance.
 # But the plan is to run backup at low-load times anyway.
 /usr/local/bin/pg_basebackup -D - --progress -Ft -x -z -Z 3 --checkpoint=fast | aws s3 cp - s3://$BUCKET/$FOLDER/basebackup.tar.gz
-mv /var/local/postgresql/backup_bucket_folder_upcoming.sh /var/local/postgresql/backup_bucket_folder.sh
+mv -f /var/local/postgresql/backup_bucket_folder_upcoming.sh /var/local/postgresql/backup_bucket_folder.sh
 set +v
 
 echo After backup:

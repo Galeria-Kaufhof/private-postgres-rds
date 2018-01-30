@@ -1,4 +1,18 @@
 ---
+# To use the AWS offsite backup:
+#
+# 1. Create an IAM user, acquire access key, create an S3 bucket and set the permissions
+# 2. Create a tiny shell file including export for variables:
+#   # AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_REGION AWS_DEFAULT_REGION
+# 3. Call backup setup from your playbook
+#     - set_facts:
+#       - backup_bucket_name: ...
+#       - aws_credentials_sh: ...
+#     - name: Set up off site backup to AWS, assuming created bucket
+#       include_role:
+#         name: private-postgres-rds
+#         tasks_from: setup_offsite_backup_aws
+
 - name: Check required variables
   fail:
     msg: "Aborting, setup_offsite_backup_aws requires '{{ item }}'."
