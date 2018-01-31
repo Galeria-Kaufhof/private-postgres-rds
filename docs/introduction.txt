@@ -20,4 +20,4 @@ options. Use the
 `implementation source code <https://github.com/Galeria-Kaufhof/private-postgres-rds>`_
 as an inspiration or :doc:`start with a walk-through! <getting-started>`
 
-Copyright (c) 2017 Galeria Kaufhof GmbH
+Copyright (c) 2017-2018 Galeria Kaufhof GmbH

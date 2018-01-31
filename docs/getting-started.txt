@@ -7,67 +7,73 @@ long term operation and maintenance and since organization specific context
 including naming conventions, provisioning habits can vary considerably, you
 will have to implement some stuff along the way.
 
-But at the end you will get a solutions:
+But at the end you will get a solution:
 
 * you can run anywhere: in the public cloud, private cloud, on premises
 * customized to you existing situation
 * with postgres extensions and versions you like
 * and hopefully as maintenance friendly as AWS RDS
 
-1. Create servers
------------------
+Implementation assumes:
 
-Creating servers, VMs or bare metal is outside of the scope of this project.
-Use whatever tools you always use:
+* using ansible for machine creation
+* using ansible for machine configuration
+* uses pyinvoke and bundle to bundle typicall operator tasks
 
-* on openstack run ``nova`` or ``heat``
-* on bare metal use some sort of PXE boot, or insert a USB stick or CD
-* or use some orchestration tool based on terraform or ansible
+--------
+Overview
+--------
+
+There are two phases:
+
+1. create servers (VMs / bare metal) with postgres installation, they contain no data folder yet
+
+2. configure a postgres cluster out of multiple servers, can be:
+
+   * a new, empty database
+   * a restore from existing backup
+   * adding/removing nodes to cluster
 
 Typical setup will include 2 servers for every development team for every
-"zone", e.g. ``production``, ``integration``:
+stage, e.g. ``production``, ``integration``:
 
 * a **master**, which will be available for read-write operations and will be
   registered within DNS or service discovery under **service name**
 * a hot-standby **slave**, which can quickly take over in case the master gets
-  broken
+  broken. It can also be used for read-only requests to reduce load to the
+  master. You can scale reads horizontally by adding more slaves, beware the
+  eventual consistency - by default the transaction is committed on master
+  before it is replicated to slave.
 
 Choose some naming convention and name servers according to it. For
-``integration`` zone/stage and the ``orderdata`` topic or team create two
+``integration`` stage and the ``orderdata`` topic or team create two
 servers::
 
   int-postgres-orderdata-1.int.example.com
   int-postgres-orderdata-2.int.example.com
 
-* install minimal e.g. Ubuntu or CentOS system
-* ensure key-based ssh works from your machine and you can ssh as root
+---------------------
+Install prerequisites
+---------------------
 
-2. Install prerequisites
-------------------------
+First, you can install prerequisites and play with an example cluster created
+with vagrant. Also see the `tasks.py` and `tests` folder.
+
+Later you can create your own system, using this project as an ansible role.
 
 ::
 
-  # install pyinvoke http://www.pyinvoke.org/installing.html
-
   # clone this project
   git clone https://github.com/Galeria-Kaufhof/private-postgres-rds.git
-
-  # prepare space to save generated credentials
-  mkdir postgres-credentials
-
-  # prepare configuration file to define specifics of your organization
-  # you can just copy and adjust the sample:
-  cp private-postgres-rds/lib/organization_conf.py.sample <some-folder>/organization_conf.py
-  # now adjust the file
-  vim ...
-  export RDS_ORGANIZATION_CONF=<full-path-to-the-file-you-ve-just-created>
-
   cd private-postgres-rds
-  invoke --list
-  # Create project specific python virtual environment in a subfolder
-  invoke --help sync_virtualenv
 
-To run tests locally vagrant-libvirt is used - follow `installation instructions`_
+  # Create a new python virtualenv and activate it
+  virtualenv --no-site-packages --python=/usr/bin/python2.7 pyenv
+  . pyenv/bin/activate
+  apt-get install -y libpq-dev # or find a similar package on CentOS or Mac
+  pip install -r requirements.txt
+
+To run tests locally VirtualBox or vagrant-libvirt is used - follow `installation instructions`_
 
 .. _installation instructions: https://github.com/vagrant-libvirt/vagrant-libvirt#installation
 
@@ -75,19 +81,63 @@ For faster vagrant operations, use caching::
 
   vagrant plugin install vagrant-cachier
 
-3. Install postgres on every server
------------------------------------
+Now you can create the test cluster:
 
-::
+* use ``invoke -h test-create-vagrant-cluster``
+* run test scenarios and observe the cluster behaviour ``invoke test``
+* run ``watch invoke info-list`` in a separate terminal to observe changes in
+  postgres cluster configuration
 
-  invoke --help initialize_servers
+Use this project for your own implementation, include ``private-postgres-rds``
+as an ansible role in your own ansible landscape:
 
-4. Configure postgres cluster
------------------------------
+------------------------------
+Phase 1. VM instances creation
+------------------------------
 
-::
+Write your own ansible playbook for creating machines and use::
 
-  invoke --help configure_cluster
+   roles:
+     - {role: private-postgres-rds, tags: 'postgresql'} # to register handlers etc.
+   tasks:
+     - name: Install postgres software
+       include_role:
+         name: private-postgres-rds
+         tasks_from: install_binary
+     - name: Setup custom postgres facts
+       include_role:
+         name: private-postgres-rds
+         tasks_from: custom_facts
+
+from that playbook, s. ``test/init-test-servers.yml`` for inspiration.
+
+Creating servers, VMs or bare metal is outside of the scope of this project.
+Use whatever tools you always use:
+
+* on openstack use ``os_server`` ansible module
+* see http://docs.ansible.com/ansible/latest/list_of_cloud_modules.html for
+  other cloud providers
+* install minimal e.g. Ubuntu or CentOS system
+* ensure key-based ssh works from your machine and you can ssh as root
+
+You can either
+
+* for every machine: create, then use tasks_from: install_binary
+* or you use an immutable-server approach (highly recommended!), where
+  you create an image with postgres software pre-baked in and instantiate
+  the new servers from that image.
+
+---------------------------------------
+Phase 2. postgres cluster configuration
+---------------------------------------
+
+Create your own pyinvoke-based tool. See tasks.py for inspiration.
+Examples::
+
+   invoke configure-cluster
+   invoke migrate-to-master --target int-postgres-orderdata-3.int.example.com
+   invoke --list
+   invoke --help migrate-to-master
 
 After a successful run of ``configure_cluster`` you will see instructions,
 how to access your new postgres from psql and the ``admin`` password, you can

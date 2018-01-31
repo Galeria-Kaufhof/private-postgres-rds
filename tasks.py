@@ -55,8 +55,16 @@ def info_list(ctx):
 
 @task
 def test_create_vagrant_cluster(ctx, recreate=False):
-    '''Create a local vagrant-libvirt cluster. --recreate enforces deletion of existing
-    Prerequisites: vagrant-libvirt https://github.com/vagrant-libvirt/vagrant-libvirt#installation'''
+    '''Create a local vagrant cluster. --recreate enforces deletion of existing
+
+    Both, VirtualBox (for best compatibility, works on both Mac and Linux)
+    or libvirt (Linus only, better suited for continuous integration like Travis-CI) can be used.
+    Prerequisites: vagrant-libvirt https://github.com/vagrant-libvirt/vagrant-libvirt#installation
+
+    Once VMs created, you can `cd test` and run the usual vagrant commands
+    like `vagrant status`, `vagrant ssh` to check VM status or inspect files
+    inside VM.
+    '''
     with ctx.cd(path.join(rds_path, 'test')):
         if recreate:
             ctx.run("vagrant destroy --force", pty=True)
