@@ -81,6 +81,9 @@
     - debug: var=ansible_local.pg
 
     # For all cases: new master, just promoted to master or an old existing master
+    - name: Ensure same max_connections setting for all - master and slaves
+      set_fact:
+        master_memtotal_mb: "{{ ansible_memtotal_mb }}"
     - name: Copy postgres configuration file
       template:
         src: "../templates/postgresql.conf.j2"

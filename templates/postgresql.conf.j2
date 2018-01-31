@@ -66,7 +66,7 @@ listen_addresses = '*'		# what IP address(es) to listen on;
 
 # RAM: {{ ansible_memtotal_mb }} MB, assign up to 20% of the RAM for connections (2 MB/connection)
 # Remember: if increasing manually afterwards on master, the setting on the slave needs to be adjusted too
-max_connections = {{ (ansible_memtotal_mb / 10) | int }} # (change requires restart)
+max_connections = {{ ((master_memtotal_mb | int) / 10) | int }} # (change requires restart)
 #superuser_reserved_connections = 3	# (change requires restart)
 #unix_socket_directories = '/tmp'	# comma-separated list of directories
 					# (change requires restart)
