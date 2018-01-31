@@ -18,7 +18,7 @@ Implementation assumes:
 
 * using ansible for machine creation
 * using ansible for machine configuration
-* uses pyinvoke and bundle to bundle typicall operator tasks
+* uses pyinvoke and python to bundle typical operator tasks
 
 --------
 Overview

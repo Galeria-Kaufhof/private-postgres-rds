@@ -17,9 +17,8 @@ Create cluster for a new team/problem domain
 
 To increase storage, or to upgrade to a new postgres minor version:
 
-1. create new VM instances
-2. initialize them with ``invoke initialie_server ...``
-3. ``invoke migrate-to-master ...``
+1. create new VM instances with preinstalled postgres or create, then install
+2. ``invoke migrate-to-master ...``
 
 
 ------------------------------
@@ -37,10 +36,17 @@ Once monitoring detects that VMs need a reboot after an unattended upgrade:
 Point-in-time restore if an application mangled the data
 --------------------------------------------------------
 
-A restore is always made to a new cluster (different name).
+A restore should always be made to a new cluster (different name).
 
 1. So create new VM instances as described above.
-2. ``invoke restore_cluster ...``
+2. Restore using your configure-cluster playbook
+3. developers can now:
+
+   * switch their application to restored DB (via application config, use new services url)
+   * copy data from one or multiple tables over
+   * or just compare the current and previous state
+
+   No work for the infrastructure team.
 
 
 -----------------------------------------
