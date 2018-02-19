@@ -37,11 +37,11 @@
     # postgres configuration
     - name: Ensure same max_connections setting for all - master and slaves
       set_fact:
-        master_memtotal_mb: "{{ hostvars[ansible_local.pg.upstream].ansible_memtotal_mb | default(555555) }}"
+        master_memtotal_mb: "{{ hostvars[ansible_local.pg.upstream].ansible_memtotal_mb | default(200) }}"
       when: ansible_local.pg.upstream|default(None) != None
     - name: Ensure same max_connections setting for all - master and slaves
       set_fact:
-        master_memtotal_mb: 666666
+        master_memtotal_mb: 200
       when: ansible_local.pg.upstream|default(None) == None
 
     - name: Copy postgres configuration file
