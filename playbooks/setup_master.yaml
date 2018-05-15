@@ -52,7 +52,7 @@
         mode: 0555
     - name: Copy restore bucket credentials
       copy: dest=/var/local/postgresql/aws_restore.credentials.sh
-        src="{{ credentials_store }}/backup/backuper-{{ from_db_instance }}-{{ from_zone }}.credentials.sh"
+        src="{{ credentials_store }}/backup/{{ from_stage }}/configurer.credentials.sh"
       when: from_db_instance is defined
 
     - name: Case 2 - restore from backup - extract data
