@@ -34,6 +34,13 @@
         mode: 0600
       notify: Restart postgres
 
+    - name: Add rsylog config for postgres logfiles
+      copy:
+        dest: "/etc/rsyslog.d/postgresql.conf"
+        src: "files/rsyslog_postgres.conf"
+      notify:
+        - Restart postgres
+
     # postgres configuration
     - name: Ensure same max_connections setting for all - master and slaves
       set_fact:

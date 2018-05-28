@@ -64,10 +64,12 @@
         - Restart postgres
         - Initial full backup
 
-    - name: Copy restore bucket credentials
+    - name: Add rsylog config for postgres logfiles
       copy:
         dest: "/etc/rsyslog.d/postgresql.conf"
         src: "files/rsyslog_postgres.conf"
+      notify:
+        - Restart postgres
 
     - name: Check existing configuration file
       stat: path=/var/local/postgresql/data/postgresql.conf
