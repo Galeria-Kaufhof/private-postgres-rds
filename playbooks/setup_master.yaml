@@ -67,7 +67,7 @@
     - name: Add rsylog config for postgres logfiles
       copy:
         dest: "/etc/rsyslog.d/postgresql.conf"
-        src: "files/rsyslog_postgres.conf"
+        src: "../files/rsyslog_postgres.conf"
       notify:
         - Restart postgres
         - Restart rsyslog
@@ -103,7 +103,7 @@
         dest: "/var/local/postgresql/data/pg_hba.conf"
       notify: Restart postgres
 
-    handlers:
+  handlers:
     - name: Restart rsyslog
       service: name=rsyslog enabled=yes state=restarted
     - name: Restart postgres
