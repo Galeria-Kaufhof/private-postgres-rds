@@ -39,6 +39,7 @@
         dest: "/etc/rsyslog.d/postgresql.conf"
         src: "files/rsyslog_postgres.conf"
       notify:
+        - Restart rsyslog
         - Restart postgres
 
     # postgres configuration
@@ -80,4 +81,5 @@
     - name: Restart postgres
       service: name=postgresql enabled=yes state=restarted
 
-
+    - name: Restart rsyslog
+      service: name=rsyslog enabled=yes state=restarted

@@ -70,6 +70,7 @@
         src: "files/rsyslog_postgres.conf"
       notify:
         - Restart postgres
+        - Restart rsyslog
 
     - name: Check existing configuration file
       stat: path=/var/local/postgresql/data/postgresql.conf
@@ -102,7 +103,9 @@
         dest: "/var/local/postgresql/data/pg_hba.conf"
       notify: Restart postgres
 
-  handlers:
+    handlers:
+    - name: Restart rsyslog
+      service: name=rsyslog enabled=yes state=restarted
     - name: Restart postgres
       service: name=postgresql enabled=yes state=restarted
       notify: Wait until (possible) recovery is finished
